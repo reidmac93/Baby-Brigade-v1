@@ -3,7 +3,14 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Baby, insertBabySchema } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Form } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,60 +66,79 @@ export default function ProfilePage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl mx-auto space-y-8">
+        {/* Parent Information Card */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="text-2xl">Parent Information</CardTitle>
+          </CardHeader>
+          <CardContent className="grid md:grid-cols-2 gap-6">
+            <div>
+              <Label>Full Name</Label>
+              <p className="text-lg font-medium mt-1">{user?.fullName}</p>
+            </div>
+            <div>
+              <Label>Email</Label>
+              <p className="text-lg font-medium mt-1">{user?.email}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Baby Information Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl flex items-center gap-2">
               <BabyIcon className="h-6 w-6" />
-              Profile Information
+              Baby Information
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold">Parent Information</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Full Name</Label>
-                  <p className="text 1g">{user?.fullName}</p>
-                </div>
-                <div>
-                  <Label>Email</Label>
-                  <p className="text-lg">{user?.email}</p>
-                </div>
-              </div>
-            </div>
-
+          <CardContent>
             {baby ? (
-              <div className="space-y-2">
-                <h3 className="text-lg font-semibold">Baby Information</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Name</Label>
-                    <p className="text-lg">{baby.name}</p>
-                  </div>
-                  <div>
-                    <Label>Birth Date</Label>
-                    <p className="text-lg">
-                      {new Date(baby.birthDate).toLocaleDateString()}
-                    </p>
-                  </div>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <Label>Name</Label>
+                  <p className="text-lg font-medium mt-1">{baby.name}</p>
+                </div>
+                <div>
+                  <Label>Birth Date</Label>
+                  <p className="text-lg font-medium mt-1">
+                    {new Date(baby.birthDate).toLocaleDateString()}
+                  </p>
                 </div>
               </div>
             ) : (
               <Form {...form}>
                 <form
                   onSubmit={form.handleSubmit((data) => babyMutation.mutate(data))}
-                  className="space-y-4"
+                  className="space-y-6"
                 >
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Baby's Name</Label>
-                    <Input {...form.register("name")} />
-                  </div>
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Baby's Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter baby's name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                  <div className="space-y-2">
-                    <Label htmlFor="birthDate">Birth Date</Label>
-                    <Input type="date" {...form.register("birthDate")} />
-                  </div>
+                  <FormField
+                    control={form.control}
+                    name="birthDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Birth Date</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
                   <Button
                     type="submit"
@@ -122,7 +148,7 @@ export default function ProfilePage() {
                     {babyMutation.isPending && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     )}
-                    Save Baby Information
+                    Add Baby Information
                   </Button>
                 </form>
               </Form>
