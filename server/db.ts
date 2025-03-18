@@ -14,10 +14,10 @@ if (!process.env.DATABASE_URL) {
 
 export async function updateAllBirthWeeks() {
   await db.execute(sql`
-    UPDATE babies 
-    SET birthweek = '2025-03-10'
+    ALTER TABLE babies 
+    RENAME COLUMN birthweek TO birth_week;
   `);
-  console.log('Updated all birth weeks to March 10, 2025');
+  console.log('Renamed birthweek column to birth_week');
 }
 
 export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
