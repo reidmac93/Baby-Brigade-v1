@@ -20,7 +20,7 @@ export function PostCard({ post, user }: PostCardProps) {
         <div className="flex-1 space-y-1">
           <p className="text-sm font-medium leading-none">{user.fullName}</p>
           <p className="text-sm text-muted-foreground">
-            {format(new Date(post.createdAt), "PPp")}
+            {format(new Date(post.createdAt!), "PPp")}
           </p>
         </div>
       </CardHeader>

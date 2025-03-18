@@ -24,6 +24,7 @@ export function CreatePost({ cohortId }: CreatePostProps) {
     },
     onSuccess: () => {
       setContent("");
+      // Invalidate the posts query to refresh the feed
       queryClient.invalidateQueries({ queryKey: ["/api/cohort", cohortId, "posts"] });
       toast({
         title: "Success",
