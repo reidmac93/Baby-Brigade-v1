@@ -52,14 +52,14 @@ export class DatabaseStorage implements IStorage {
     const birthWeek = new Date(birthDate);
     birthWeek.setDate(birthDate.getDate() - birthDate.getDay());
 
-    const cohort = await this.getOrCreateCohort(birth_week);
+    const cohort = await this.getOrCreateCohort(birthWeek);
 
     const [baby] = await db
       .insert(babies)
       .values({
         name: insertBaby.name,
         birthDate: birthDate,
-        birth_week: birth_week,
+        birthWeek: birthWeek,
         userId: userId,
         cohortId: cohort.id,
       })
