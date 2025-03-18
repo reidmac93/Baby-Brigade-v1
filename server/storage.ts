@@ -1,97 +1,115 @@
 import { IStorage } from "./types";
 import { User, Baby, Cohort, Post, InsertUser, InsertBaby, InsertPost } from "@shared/schema";
+import { users, babies, cohorts, posts } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 import session from "express-session";
-import createMemoryStore from "memorystore";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
 import { addMonths, startOfMonth, endOfMonth } from "date-fns";
 
-const MemoryStore = createMemoryStore(session);
+const PostgresSessionStore = connectPg(session);
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private babies: Map<number, Baby>;
-  private cohorts: Map<number, Cohort>;
-  private posts: Map<number, Post>;
-  private currentId: { [key: string]: number };
+export class DatabaseStorage implements IStorage {
   sessionStore: session.SessionStore;
 
   constructor() {
-    this.users = new Map();
-    this.babies = new Map();
-    this.cohorts = new Map();
-    this.posts = new Map();
-    this.currentId = { users: 1, babies: 1, cohorts: 1, posts: 1 };
-    this.sessionStore = new MemoryStore({ checkPeriod: 86400000 });
+    this.sessionStore = new PostgresSessionStore({ 
+      pool,
+      createTableIfMissing: true
+    });
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentId.users++;
-    const user = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db.insert(users).values(insertUser).returning();
     return user;
   }
 
   async createBaby(insertBaby: InsertBaby, userId: number): Promise<Baby> {
-    const id = this.currentId.babies++;
-    const cohort = await this.getOrCreateCohort(insertBaby.birthDate);
-    const baby = { ...insertBaby, id, userId, cohortId: cohort.id };
-    this.babies.set(id, baby);
+    const birthDate = new Date(insertBaby.birthDate);
+    const cohort = await this.getOrCreateCohort(birthDate);
+
+    const [baby] = await db
+      .insert(babies)
+      .values({
+        ...insertBaby,
+        userId,
+        cohortId: cohort.id,
+        birthDate,
+      })
+      .returning();
+
     return baby;
   }
 
   async getBabyByUserId(userId: number): Promise<Baby | undefined> {
-    return Array.from(this.babies.values()).find(
-      (baby) => baby.userId === userId,
-    );
+    const [baby] = await db.select().from(babies).where(eq(babies.userId, userId));
+    return baby;
   }
 
   private async getOrCreateCohort(birthDate: Date): Promise<Cohort> {
     const start = startOfMonth(birthDate);
     const end = endOfMonth(addMonths(start, 1));
 
-    let cohort = Array.from(this.cohorts.values()).find(
-      (c) => c.startDate <= birthDate && c.endDate >= birthDate,
-    );
+    // Try to find existing cohort
+    const [existingCohort] = await db
+      .select()
+      .from(cohorts)
+      .where(
+        eq(cohorts.startDate, start)
+      );
 
-    if (!cohort) {
-      const id = this.currentId.cohorts++;
-      cohort = {
-        id,
+    if (existingCohort) {
+      return existingCohort;
+    }
+
+    // Create new cohort
+    const [cohort] = await db
+      .insert(cohorts)
+      .values({
         name: `${start.toLocaleString('default', { month: 'long', year: 'numeric' })} Babies`,
         startDate: start,
         endDate: end,
-      };
-      this.cohorts.set(id, cohort);
-    }
+      })
+      .returning();
 
     return cohort;
   }
 
   async getCohort(id: number): Promise<Cohort | undefined> {
-    return this.cohorts.get(id);
+    const [cohort] = await db.select().from(cohorts).where(eq(cohorts.id, id));
+    return cohort;
   }
 
   async createPost(insertPost: InsertPost, userId: number): Promise<Post> {
-    const id = this.currentId.posts++;
-    const post = { ...insertPost, id, userId, createdAt: new Date() };
-    this.posts.set(id, post);
+    const [post] = await db
+      .insert(posts)
+      .values({
+        ...insertPost,
+        userId,
+        createdAt: new Date(),
+      })
+      .returning();
     return post;
   }
 
   async getPostsByCohort(cohortId: number): Promise<Post[]> {
-    return Array.from(this.posts.values())
-      .filter(post => post.cohortId === cohortId)
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return db
+      .select()
+      .from(posts)
+      .where(eq(posts.cohortId, cohortId))
+      .orderBy(posts.createdAt, "desc");
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
