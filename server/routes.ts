@@ -47,13 +47,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const cohortId = parseInt(req.params.id);
+      log(`Fetching posts for cohort ${cohortId}`);
+
       const posts = await storage.getPostsByCohort(cohortId);
+      log(`Found ${posts.length} posts`);
+
       const postsWithUsers = await Promise.all(
         posts.map(async (post) => {
           const user = await storage.getUser(post.userId);
           return { ...post, user };
         })
       );
+
+      log(`Returning ${postsWithUsers.length} posts with user data`);
       res.json(postsWithUsers);
     } catch (err) {
       log(`Error fetching posts: ${err}`);

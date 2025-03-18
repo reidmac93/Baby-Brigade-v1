@@ -16,13 +16,13 @@ export default function HomePage() {
     queryKey: ["/api/baby"],
   });
 
-  const { data: posts, isLoading: isPostsLoading } = useQuery<PostWithUser[]>({
-    queryKey: ["/api/cohort", baby?.cohortId, "posts"],
+  const { data: cohort, isLoading: isCohortLoading } = useQuery<Cohort>({
+    queryKey: ["/api/cohort", baby?.cohortId],
     enabled: !!baby?.cohortId,
   });
 
-  const { data: cohort, isLoading: isCohortLoading } = useQuery<Cohort>({
-    queryKey: ["/api/cohort", baby?.cohortId],
+  const { data: posts = [], isLoading: isPostsLoading } = useQuery<PostWithUser[]>({
+    queryKey: ["/api/cohort", baby?.cohortId, "posts"],
     enabled: !!baby?.cohortId,
   });
 
@@ -51,15 +51,17 @@ export default function HomePage() {
         <div className="lg:w-3/4">
           <h2 className="text-2xl font-bold mb-6">Cohort Feed</h2>
           <div className="space-y-6">
-            <CreatePost cohortId={baby.cohortId} />
+            <CreatePost cohortId={baby.cohortId!} />
             {isPostsLoading ? (
               <div className="flex justify-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : posts && posts.length > 0 ? (
-              posts.map((post) => (
-                <PostCard key={post.id} post={post} user={post.user} />
-              ))
+              <div className="space-y-4">
+                {posts.map((post) => (
+                  <PostCard key={post.id} post={post} user={post.user} />
+                ))}
+              </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 No posts yet. Be the first to share something with your cohort!
