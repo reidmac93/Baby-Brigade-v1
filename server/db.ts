@@ -11,5 +11,14 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
+
+export async function updateAllBirthWeeks() {
+  await db.execute(sql`
+    UPDATE babies 
+    SET birthweek = '2025-03-10'
+  `);
+  console.log('Updated all birth weeks to March 10, 2025');
+}
+
 export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 export const db = drizzle({ client: pool, schema });

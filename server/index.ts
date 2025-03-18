@@ -7,6 +7,17 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 app.use((req, res, next) => {
+
+app.post('/api/migrate/birthweek', async (req, res) => {
+  try {
+    await updateAllBirthWeeks();
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Migration failed:', error);
+    res.status(500).json({ error: 'Migration failed' });
+  }
+});
+
   const start = Date.now();
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
