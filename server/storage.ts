@@ -2,7 +2,7 @@ import { IStorage } from "./types";
 import { User, Baby, Cohort, Post, InsertUser, InsertBaby, InsertPost } from "@shared/schema";
 import { users, babies, cohorts, posts } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -42,10 +42,10 @@ export class DatabaseStorage implements IStorage {
     const [baby] = await db
       .insert(babies)
       .values({
-        ...insertBaby,
-        userId,
+        name: insertBaby.name,
+        birthDate: birthDate,
+        userId: userId,
         cohortId: cohort.id,
-        birthDate,
       })
       .returning();
 
@@ -61,12 +61,15 @@ export class DatabaseStorage implements IStorage {
     const start = startOfMonth(birthDate);
     const end = endOfMonth(addMonths(start, 1));
 
-    // Try to find existing cohort
+    // Try to find existing cohort for this month
     const [existingCohort] = await db
       .select()
       .from(cohorts)
       .where(
-        eq(cohorts.startDate, start)
+        and(
+          eq(cohorts.startDate, start.toISOString().split('T')[0]),
+          eq(cohorts.endDate, end.toISOString().split('T')[0])
+        )
       );
 
     if (existingCohort) {
@@ -78,8 +81,8 @@ export class DatabaseStorage implements IStorage {
       .insert(cohorts)
       .values({
         name: `${start.toLocaleString('default', { month: 'long', year: 'numeric' })} Babies`,
-        startDate: start,
-        endDate: end,
+        startDate: start.toISOString().split('T')[0],
+        endDate: end.toISOString().split('T')[0],
       })
       .returning();
 
@@ -95,11 +98,13 @@ export class DatabaseStorage implements IStorage {
     const [post] = await db
       .insert(posts)
       .values({
-        ...insertPost,
-        userId,
+        content: insertPost.content,
+        userId: userId,
+        cohortId: insertPost.cohortId,
         createdAt: new Date(),
       })
       .returning();
+
     return post;
   }
 
@@ -108,7 +113,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(posts)
       .where(eq(posts.cohortId, cohortId))
-      .orderBy(posts.createdAt, "desc");
+      .orderBy(desc(posts.createdAt));
   }
 }
 
