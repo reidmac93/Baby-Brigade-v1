@@ -18,10 +18,12 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Baby as BabyIcon } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 export default function ProfilePage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   const { data: baby, isLoading } = useQuery<Baby>({
     queryKey: ["/api/baby"],
@@ -46,6 +48,8 @@ export default function ProfilePage() {
         title: "Success",
         description: "Baby information saved successfully!",
       });
+      // Redirect to home page after successfully adding baby information
+      setLocation("/");
     },
     onError: (error: Error) => {
       toast({

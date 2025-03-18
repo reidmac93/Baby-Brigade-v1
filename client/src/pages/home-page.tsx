@@ -39,25 +39,31 @@ export default function HomePage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
-          <h2 className="text-2xl font-bold mb-6">Recent Posts</h2>
+      <div className="flex flex-col lg:flex-row gap-8">
+        {/* Sidebar with Cohort Info */}
+        <div className="lg:w-1/4">
+          {cohort && <CohortCard cohort={cohort} baby={baby} />}
+        </div>
+
+        {/* Main Content - Post Wall */}
+        <div className="lg:w-3/4">
+          <h2 className="text-2xl font-bold mb-6">Cohort Feed</h2>
           <div className="space-y-6">
             <CreatePost cohortId={baby.cohortId} />
             {isPostsLoading ? (
               <div className="flex justify-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
-            ) : (
-              posts?.map((post) => (
+            ) : posts && posts.length > 0 ? (
+              posts.map((post) => (
                 <PostCard key={post.id} post={post} user={user!} />
               ))
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                No posts yet. Be the first to share something with your cohort!
+              </div>
             )}
           </div>
-        </div>
-
-        <div className="lg:col-span-1">
-          {cohort && <CohortCard cohort={cohort} baby={baby} />}
         </div>
       </div>
     </div>
