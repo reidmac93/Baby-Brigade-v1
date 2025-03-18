@@ -1,11 +1,13 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
-import { Baby, Cohort, Post } from "@shared/schema";
+import { Baby, Cohort, Post, User } from "@shared/schema";
 import { CohortCard } from "@/components/cohort-card";
 import { PostCard } from "@/components/post-card";
 import { CreatePost } from "@/components/create-post";
 import { Loader2 } from "lucide-react";
 import { Redirect } from "wouter";
+
+type PostWithUser = Post & { user: User };
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -14,7 +16,7 @@ export default function HomePage() {
     queryKey: ["/api/baby"],
   });
 
-  const { data: posts, isLoading: isPostsLoading } = useQuery<Post[]>({
+  const { data: posts, isLoading: isPostsLoading } = useQuery<PostWithUser[]>({
     queryKey: ["/api/cohort", baby?.cohortId, "posts"],
     enabled: !!baby?.cohortId,
   });
@@ -56,7 +58,7 @@ export default function HomePage() {
               </div>
             ) : posts && posts.length > 0 ? (
               posts.map((post) => (
-                <PostCard key={post.id} post={post} user={user!} />
+                <PostCard key={post.id} post={post} user={post.user} />
               ))
             ) : (
               <div className="text-center py-8 text-muted-foreground">
