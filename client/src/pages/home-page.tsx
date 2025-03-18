@@ -5,6 +5,7 @@ import { CohortCard } from "@/components/cohort-card";
 import { PostCard } from "@/components/post-card";
 import { CreatePost } from "@/components/create-post";
 import { Loader2 } from "lucide-react";
+import { Redirect } from "wouter";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -23,7 +24,7 @@ export default function HomePage() {
     enabled: !!baby?.cohortId,
   });
 
-  if (isBabyLoading || isCohortLoading) {
+  if (isBabyLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -31,34 +32,9 @@ export default function HomePage() {
     );
   }
 
+  // Redirect to profile if baby information is not provided
   if (!baby) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Welcome to BabyConnect!</h1>
-          <p className="text-muted-foreground mb-4">
-            To get started, please add your baby's information in your profile.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
-            <img
-              src="https://images.unsplash.com/photo-1517554558809-9b4971b38f39"
-              alt="Family activities"
-              className="rounded-lg shadow-lg"
-            />
-            <img
-              src="https://images.unsplash.com/photo-1596673325912-423fb1425a5e"
-              alt="Family bonding"
-              className="rounded-lg shadow-lg hidden md:block"
-            />
-            <img
-              src="https://images.unsplash.com/photo-1612297561428-6ca218aec064"
-              alt="Family moment"
-              className="rounded-lg shadow-lg hidden lg:block"
-            />
-          </div>
-        </div>
-      </div>
-    );
+    return <Redirect to="/profile" />;
   }
 
   return (
@@ -82,21 +58,6 @@ export default function HomePage() {
 
         <div className="lg:col-span-1">
           {cohort && <CohortCard cohort={cohort} baby={baby} />}
-          <div className="mt-8">
-            <h3 className="text-lg font-semibold mb-4">Parenting Tips</h3>
-            <div className="grid grid-cols-1 gap-4">
-              <img
-                src="https://images.unsplash.com/photo-1648137974441-f786b8783fa3"
-                alt="Parenting moment"
-                className="rounded-lg shadow-md"
-              />
-              <img
-                src="https://images.unsplash.com/photo-1651431936616-b9dd60d16eb8"
-                alt="Baby care"
-                className="rounded-lg shadow-md"
-              />
-            </div>
-          </div>
         </div>
       </div>
     </div>

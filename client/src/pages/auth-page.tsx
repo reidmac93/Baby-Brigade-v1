@@ -9,12 +9,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertUserSchema, InsertUser } from "@shared/schema";
 import { Loader2 } from "lucide-react";
-import { Redirect } from "wouter";
+import { Redirect, useLocation } from "wouter";
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
-  
+  const [, setLocation] = useLocation();
+
   const form = useForm<InsertUser>({
     resolver: zodResolver(insertUserSchema),
     defaultValues: {
@@ -26,7 +27,8 @@ export default function AuthPage() {
   });
 
   if (user) {
-    return <Redirect to="/" />;
+    // After registration/login, redirect to profile page
+    return <Redirect to="/profile" />;
   }
 
   const onSubmit = (data: InsertUser) => {
@@ -58,7 +60,7 @@ export default function AuthPage() {
                   <Label htmlFor="username">Username</Label>
                   <Input {...form.register("username")} />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
                   <Input type="password" {...form.register("password")} />
@@ -70,7 +72,7 @@ export default function AuthPage() {
                       <Label htmlFor="fullName">Full Name</Label>
                       <Input {...form.register("fullName")} />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="email">Email</Label>
                       <Input type="email" {...form.register("email")} />
