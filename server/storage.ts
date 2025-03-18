@@ -48,7 +48,7 @@ export class DatabaseStorage implements IStorage {
       .values({
         name: insertBaby.name,
         birthDate: birthDate,
-        birth_week: birthWeek,
+        birthWeek: birthWeek,
         userId: userId,
         cohortId: cohort.id,
       })
