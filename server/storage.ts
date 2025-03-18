@@ -1,5 +1,13 @@
 import { IStorage } from "./types";
-import { User, Baby, Cohort, Post, InsertUser, InsertBaby, InsertPost } from "@shared/schema";
+import {
+  User,
+  Baby,
+  Cohort,
+  Post,
+  InsertUser,
+  InsertBaby,
+  InsertPost,
+} from "@shared/schema";
 import { users, babies, cohorts, posts } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc } from "drizzle-orm";
@@ -14,9 +22,9 @@ export class DatabaseStorage implements IStorage {
   sessionStore: session.SessionStore;
 
   constructor() {
-    this.sessionStore = new PostgresSessionStore({ 
+    this.sessionStore = new PostgresSessionStore({
       pool,
-      createTableIfMissing: true
+      createTableIfMissing: true,
     });
   }
 
@@ -26,7 +34,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, username));
     return user;
   }
 
@@ -40,15 +51,15 @@ export class DatabaseStorage implements IStorage {
     // Get start of week (Sunday)
     const birthWeek = new Date(birthDate);
     birthWeek.setDate(birthDate.getDate() - birthDate.getDay());
-    
-    const cohort = await this.getOrCreateCohort(birthWeek);
+
+    const cohort = await this.getOrCreateCohort(birth_week);
 
     const [baby] = await db
       .insert(babies)
       .values({
         name: insertBaby.name,
         birthDate: birthDate,
-        birth_week: birthWeek,
+        birth_week: birth_week,
         userId: userId,
         cohortId: cohort.id,
       })
@@ -58,7 +69,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getBabyByUserId(userId: number): Promise<Baby | undefined> {
-    const [baby] = await db.select().from(babies).where(eq(babies.userId, userId));
+    const [baby] = await db
+      .select()
+      .from(babies)
+      .where(eq(babies.userId, userId));
     return baby;
   }
 
@@ -72,9 +86,9 @@ export class DatabaseStorage implements IStorage {
       .from(cohorts)
       .where(
         and(
-          eq(cohorts.startDate, start.toISOString().split('T')[0]),
-          eq(cohorts.endDate, end.toISOString().split('T')[0])
-        )
+          eq(cohorts.startDate, start.toISOString().split("T")[0]),
+          eq(cohorts.endDate, end.toISOString().split("T")[0]),
+        ),
       );
 
     if (existingCohort) {
@@ -85,9 +99,9 @@ export class DatabaseStorage implements IStorage {
     const [cohort] = await db
       .insert(cohorts)
       .values({
-        name: `${start.toLocaleString('default', { month: 'long', year: 'numeric' })} Babies`,
-        startDate: start.toISOString().split('T')[0],
-        endDate: end.toISOString().split('T')[0],
+        name: `${start.toLocaleString("default", { month: "long", year: "numeric" })} Babies`,
+        startDate: start.toISOString().split("T")[0],
+        endDate: end.toISOString().split("T")[0],
       })
       .returning();
 
