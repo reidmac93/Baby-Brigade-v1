@@ -1,4 +1,11 @@
-import { pgTable, text, serial, date, timestamp, integer } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  serial,
+  date,
+  timestamp,
+  integer,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -15,7 +22,7 @@ export const babies = pgTable("babies", {
   userId: integer("user_id").references(() => users.id),
   name: text("name").notNull(),
   birthDate: date("birth_date").notNull(),
-  birthWeek: date("birthWeek", { mode: "date" }).notNull(),
+  birthWeek: date("birth_week", { mode: "date" }).notNull(),
   cohortId: integer("cohort_id").references(() => cohorts.id),
 });
 
@@ -34,15 +41,17 @@ export const posts = pgTable("posts", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-  fullName: true,
-  email: true,
-}).extend({
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  email: z.string().email("Invalid email address"),
-});
+export const insertUserSchema = createInsertSchema(users)
+  .pick({
+    username: true,
+    password: true,
+    fullName: true,
+    email: true,
+  })
+  .extend({
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    email: z.string().email("Invalid email address"),
+  });
 
 export const insertBabySchema = createInsertSchema(babies).pick({
   name: true,
