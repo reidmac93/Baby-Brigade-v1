@@ -15,7 +15,7 @@ export const babies = pgTable("babies", {
   userId: integer("user_id").references(() => users.id),
   name: text("name").notNull(),
   birthDate: date("birth_date").notNull(),
-  birthWeek: date("birth_week", { mode: "date" }).notNull(),
+  birthWeek: date("birthWeek", { mode: "date" }).notNull(),
   cohortId: integer("cohort_id").references(() => cohorts.id),
 });
 
