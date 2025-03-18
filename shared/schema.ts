@@ -22,7 +22,7 @@ export const babies = pgTable("babies", {
   userId: integer("user_id").references(() => users.id),
   name: text("name").notNull(),
   birthDate: date("birth_date").notNull(),
-  birthWeek: date("birthWeek").notNull(),
+  birthWeek: date("birth_week").notNull(),
   cohortId: integer("cohort_id").references(() => cohorts.id),
 });
 
