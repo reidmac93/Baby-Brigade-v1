@@ -139,6 +139,9 @@ export default function ProfilePage() {
                         <FormControl>
                           <Input type="date" {...field} />
                         </FormControl>
+                        <FormDescription>
+                          Your baby will be placed in a cohort with other babies born in the same week
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}

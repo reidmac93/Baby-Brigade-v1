@@ -37,13 +37,18 @@ export class DatabaseStorage implements IStorage {
 
   async createBaby(insertBaby: InsertBaby, userId: number): Promise<Baby> {
     const birthDate = new Date(insertBaby.birthDate);
-    const cohort = await this.getOrCreateCohort(birthDate);
+    // Get start of week (Sunday)
+    const birthWeek = new Date(birthDate);
+    birthWeek.setDate(birthDate.getDate() - birthDate.getDay());
+    
+    const cohort = await this.getOrCreateCohort(birthWeek);
 
     const [baby] = await db
       .insert(babies)
       .values({
         name: insertBaby.name,
         birthDate: birthDate,
+        birthWeek: birthWeek,
         userId: userId,
         cohortId: cohort.id,
       })
