@@ -15,9 +15,16 @@ if (!process.env.DATABASE_URL) {
 export async function updateAllBirthWeeks() {
   await db.execute(sql`
     ALTER TABLE babies 
-    RENAME COLUMN birthweek TO birth_week;
+    ADD COLUMN IF NOT EXISTS birth_week DATE;
+
+    UPDATE babies 
+    SET birth_week = date_trunc('week', birth_date)
+    WHERE birth_week IS NULL;
+
+    ALTER TABLE babies
+    ALTER COLUMN birth_week SET NOT NULL;
   `);
-  console.log('Renamed birthweek column to birth_week');
+  console.log('Added and populated birth_week column');
 }
 
 export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
