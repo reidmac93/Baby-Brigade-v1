@@ -16,16 +16,42 @@ type AuthView = "login" | "register" | "forgotPassword";
 export default function AuthPage() {
   const { user, isNewUser, setIsNewUser, loginMutation, registerMutation, forgotPasswordMutation } = useAuth();
   const [view, setView] = useState<AuthView>("login");
+  
+  // Create a wrapper for setView that also resets the form
+  const changeView = (newView: AuthView) => {
+    setView(newView);
+    loginForm.reset({
+      username: "",
+      password: "",
+      fullName: "",
+      email: "",
+    });
+    if (newView === "forgotPassword") {
+      forgotPasswordForm.reset({ email: "" });
+    }
+  };
   const [, setLocation] = useLocation();
 
+  // Create a separate login schema that only requires username and password
+  const loginSchema = insertUserSchema.pick({
+    username: true,
+    password: true,
+  });
+
+  // For registration use the full schema
+  const registerSchema = insertUserSchema;
+
+  // Use the appropriate schema based on the current view
   const loginForm = useForm<InsertUser>({
-    resolver: zodResolver(insertUserSchema),
+    resolver: zodResolver(view === "login" ? loginSchema : registerSchema),
     defaultValues: {
       username: "",
       password: "",
       fullName: "",
       email: "",
     },
+    // Reset validation errors when switching between views
+    mode: "onSubmit",
   });
 
   const forgotPasswordForm = useForm<ForgotPassword>({
@@ -41,21 +67,26 @@ export default function AuthPage() {
   }
 
   const onSubmit = (data: InsertUser) => {
+    console.log("Form submitted", view, data);
     if (view === "login") {
+      console.log("Attempting login with:", { username: data.username });
       loginMutation.mutate({
         username: data.username,
         password: data.password,
       });
     } else {
+      console.log("Attempting registration");
       registerMutation.mutate(data);
     }
   };
 
   const onForgotPasswordSubmit = (data: ForgotPassword) => {
+    console.log("Forgot password submitted", data);
     forgotPasswordMutation.mutate(data, {
       onSuccess: () => {
         // If we have the token in our response (for demo purposes), show success message
-        setView("login");
+        console.log("Forgot password success, changing view to login");
+        changeView("login");
       },
     });
   };
@@ -81,7 +112,13 @@ export default function AuthPage() {
           <CardContent>
             {view === "login" && (
               <Form {...loginForm}>
-                <form onSubmit={loginForm.handleSubmit(onSubmit)} className="space-y-4">
+                <form 
+                  onSubmit={(e) => {
+                    e.preventDefault(); 
+                    console.log("Login form submitted via event handler");
+                    loginForm.handleSubmit(onSubmit)(e);
+                  }} 
+                  className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="username">Username</Label>
                     <Input {...loginForm.register("username")} />
@@ -108,6 +145,17 @@ export default function AuthPage() {
                     type="submit"
                     className="w-full"
                     disabled={isPending}
+                    onClick={(e) => {
+                      if (!isPending) {
+                        e.preventDefault();
+                        console.log("Login button clicked");
+                        // Get form values directly
+                        const username = loginForm.getValues("username");
+                        const password = loginForm.getValues("password");
+                        console.log("Manual login with values:", { username });
+                        loginMutation.mutate({ username, password });
+                      }
+                    }}
                   >
                     {isPending ? (
                       <span className="flex items-center">
@@ -124,7 +172,7 @@ export default function AuthPage() {
                       type="button"
                       variant="link"
                       className="text-sm"
-                      onClick={() => setView("register")}
+                      onClick={() => changeView("register")}
                     >
                       Need an account? Register
                     </Button>
@@ -132,7 +180,7 @@ export default function AuthPage() {
                       type="button"
                       variant="link"
                       className="text-sm"
-                      onClick={() => setView("forgotPassword")}
+                      onClick={() => changeView("forgotPassword")}
                     >
                       Forgot password?
                     </Button>
@@ -201,7 +249,7 @@ export default function AuthPage() {
                     type="button"
                     variant="link"
                     className="w-full mt-4"
-                    onClick={() => setView("login")}
+                    onClick={() => changeView("login")}
                   >
                     Already have an account? Login
                   </Button>
@@ -245,7 +293,7 @@ export default function AuthPage() {
                     type="button"
                     variant="link"
                     className="w-full mt-4"
-                    onClick={() => setView("login")}
+                    onClick={() => changeView("login")}
                   >
                     Back to login
                   </Button>
