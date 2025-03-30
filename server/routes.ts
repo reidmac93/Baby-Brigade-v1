@@ -101,6 +101,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update a post
+  app.put("/api/posts/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const postId = parseInt(req.params.id);
+      const { content } = req.body;
+      
+      if (!content || content.trim() === "") {
+        return res.status(400).json({ error: "Post content cannot be empty" });
+      }
+
+      const userId = req.user.id;
+      log(`Updating post ${postId} for user ${userId}`);
+
+      const updatedPost = await storage.updatePost(postId, content, userId);
+      if (!updatedPost) {
+        return res.status(404).json({ error: "Post not found or you don't have permission to edit it" });
+      }
+
+      log(`Post ${postId} updated successfully`);
+      res.json(updatedPost);
+    } catch (err) {
+      log(`Error updating post: ${err}`);
+      res.status(500).json({ error: "Failed to update post" });
+    }
+  });
+
+  // Delete a post
+  app.delete("/api/posts/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const postId = parseInt(req.params.id);
+      const userId = req.user.id;
+      log(`Deleting post ${postId} for user ${userId}`);
+
+      const success = await storage.deletePost(postId, userId);
+      if (!success) {
+        return res.status(404).json({ error: "Post not found or you don't have permission to delete it" });
+      }
+
+      log(`Post ${postId} deleted successfully`);
+      res.json({ success: true });
+    } catch (err) {
+      log(`Error deleting post: ${err}`);
+      res.status(500).json({ error: "Failed to delete post" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -35,6 +35,9 @@ export interface IStorage {
   getCohort(id: number): Promise<Cohort | undefined>;
   createPost(insertPost: InsertPost, userId: number): Promise<Post>;
   getPostsByCohort(cohortId: number): Promise<Post[]>;
+  getPost(id: number): Promise<Post | undefined>;
+  updatePost(id: number, content: string, userId: number): Promise<Post | undefined>;
+  deletePost(id: number, userId: number): Promise<boolean>;
   createPasswordResetToken(userId: number): Promise<string>;
   getPasswordResetTokenByToken(token: string): Promise<PasswordResetToken | undefined>;
   markTokenAsUsed(tokenId: number): Promise<void>;
@@ -210,6 +213,46 @@ export class DatabaseStorage implements IStorage {
       .from(posts)
       .where(eq(posts.cohortId, cohortId))
       .orderBy(desc(posts.createdAt));
+  }
+
+  async getPost(id: number): Promise<Post | undefined> {
+    const [post] = await db
+      .select()
+      .from(posts)
+      .where(eq(posts.id, id));
+    return post;
+  }
+
+  async updatePost(id: number, content: string, userId: number): Promise<Post | undefined> {
+    // First check if the post exists and belongs to the user
+    const post = await this.getPost(id);
+    if (!post || post.userId !== userId) {
+      return undefined;
+    }
+
+    // Update the post
+    const [updatedPost] = await db
+      .update(posts)
+      .set({ content })
+      .where(and(eq(posts.id, id), eq(posts.userId, userId)))
+      .returning();
+    
+    return updatedPost;
+  }
+
+  async deletePost(id: number, userId: number): Promise<boolean> {
+    // First check if the post exists and belongs to the user
+    const post = await this.getPost(id);
+    if (!post || post.userId !== userId) {
+      return false;
+    }
+
+    // Delete the post
+    const result = await db
+      .delete(posts)
+      .where(and(eq(posts.id, id), eq(posts.userId, userId)));
+    
+    return true;
   }
 }
 
