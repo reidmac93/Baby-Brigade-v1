@@ -13,15 +13,11 @@ export function Navigation() {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-6">
-            <Link href="/">
-              <a className={`text-lg font-semibold ${location === "/" ? "text-primary" : "text-foreground"}`}>
-                Home
-              </a>
+            <Link href="/" className={`text-lg font-semibold ${location === "/" ? "text-primary" : "text-foreground"}`}>
+              Home
             </Link>
-            <Link href="/profile">
-              <a className={`text-lg font-semibold ${location === "/profile" ? "text-primary" : "text-foreground"}`}>
-                Profile
-              </a>
+            <Link href="/profile" className={`text-lg font-semibold ${location === "/profile" ? "text-primary" : "text-foreground"}`}>
+              Profile
             </Link>
           </div>
           <Button 
