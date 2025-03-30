@@ -16,6 +16,15 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   fullName: text("full_name").notNull(),
   email: text("email").notNull().unique(),
+  role: text("role", { enum: ["user", "admin"] }).default("user").notNull(),
+});
+
+export const cohortMemberships = pgTable("cohort_memberships", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  cohortId: integer("cohort_id").references(() => cohorts.id).notNull(),
+  role: text("role", { enum: ["member", "moderator"] }).default("member").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const passwordResetTokens = pgTable("password_reset_tokens", {
@@ -73,6 +82,12 @@ export const insertPostSchema = createInsertSchema(posts).pick({
   cohortId: true,
 });
 
+export const insertCohortMembershipSchema = createInsertSchema(cohortMemberships).pick({
+  userId: true,
+  cohortId: true,
+  role: true,
+});
+
 export const forgotPasswordSchema = z.object({
   email: z.string().email("Invalid email address"),
 });
@@ -85,10 +100,12 @@ export const resetPasswordSchema = z.object({
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertBaby = z.infer<typeof insertBabySchema>;
 export type InsertPost = z.infer<typeof insertPostSchema>;
+export type InsertCohortMembership = z.infer<typeof insertCohortMembershipSchema>;
 export type ForgotPassword = z.infer<typeof forgotPasswordSchema>;
 export type ResetPassword = z.infer<typeof resetPasswordSchema>;
 export type User = typeof users.$inferSelect;
 export type Baby = typeof babies.$inferSelect;
 export type Cohort = typeof cohorts.$inferSelect;
 export type Post = typeof posts.$inferSelect;
+export type CohortMembership = typeof cohortMemberships.$inferSelect;
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;

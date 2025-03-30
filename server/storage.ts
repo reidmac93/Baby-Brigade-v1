@@ -3,15 +3,18 @@ import {
   Baby,
   Cohort,
   Post,
+  CohortMembership,
   InsertUser,
   InsertBaby,
   InsertPost,
+  InsertCohortMembership,
   PasswordResetToken,
   users,
   babies,
   cohorts,
   posts,
   passwordResetTokens,
+  cohortMemberships,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, gt } from "drizzle-orm";
@@ -30,6 +33,7 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(insertUser: InsertUser): Promise<User>;
   updateUserPassword(userId: number, hashedPassword: string): Promise<User>;
+  updateUserRole(userId: number, role: string): Promise<User>;
   getBabyByUserId(userId: number): Promise<Baby | undefined>;
   createBaby(insertBaby: InsertBaby, userId: number): Promise<Baby>;
   getCohort(id: number): Promise<Cohort | undefined>;
@@ -41,6 +45,16 @@ export interface IStorage {
   createPasswordResetToken(userId: number): Promise<string>;
   getPasswordResetTokenByToken(token: string): Promise<PasswordResetToken | undefined>;
   markTokenAsUsed(tokenId: number): Promise<void>;
+  // Cohort membership methods
+  createCohortMembership(cohortId: number, userId: number, role: string): Promise<CohortMembership>;
+  updateCohortMembershipRole(id: number, role: string): Promise<CohortMembership | undefined>;
+  deleteCohortMembership(id: number): Promise<boolean>;
+  getCohortMembershipById(id: number): Promise<CohortMembership | undefined>;
+  getCohortMembershipsByUserId(userId: number): Promise<CohortMembership[]>;
+  getCohortMembershipsByCohortId(cohortId: number): Promise<CohortMembership[]>;
+  getCohortMembers(cohortId: number): Promise<User[]>;
+  getCohortModerators(cohortId: number): Promise<User[]>;
+  isCohortModerator(userId: number, cohortId: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -253,6 +267,117 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(posts.id, id), eq(posts.userId, userId)));
     
     return true;
+  }
+
+  async updateUserRole(userId: number, role: "user" | "admin"): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ role })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async createCohortMembership(cohortId: number, userId: number, role: "member" | "moderator"): Promise<CohortMembership> {
+    const [membership] = await db
+      .insert(cohortMemberships)
+      .values({
+        cohortId,
+        userId,
+        role,
+        createdAt: new Date(),
+      })
+      .returning();
+    return membership;
+  }
+
+  async updateCohortMembershipRole(id: number, role: "member" | "moderator"): Promise<CohortMembership | undefined> {
+    const [membership] = await db
+      .update(cohortMemberships)
+      .set({ role })
+      .where(eq(cohortMemberships.id, id))
+      .returning();
+    return membership;
+  }
+
+  async deleteCohortMembership(id: number): Promise<boolean> {
+    await db.delete(cohortMemberships).where(eq(cohortMemberships.id, id));
+    return true;
+  }
+
+  async getCohortMembershipById(id: number): Promise<CohortMembership | undefined> {
+    const [membership] = await db
+      .select()
+      .from(cohortMemberships)
+      .where(eq(cohortMemberships.id, id));
+    return membership;
+  }
+
+  async getCohortMembershipsByUserId(userId: number): Promise<CohortMembership[]> {
+    return db
+      .select()
+      .from(cohortMemberships)
+      .where(eq(cohortMemberships.userId, userId));
+  }
+
+  async getCohortMembershipsByCohortId(cohortId: number): Promise<CohortMembership[]> {
+    return db
+      .select()
+      .from(cohortMemberships)
+      .where(eq(cohortMemberships.cohortId, cohortId));
+  }
+
+  async getCohortMembers(cohortId: number): Promise<User[]> {
+    return db
+      .select({
+        id: users.id,
+        username: users.username,
+        fullName: users.fullName,
+        email: users.email,
+        role: users.role,
+      })
+      .from(users)
+      .innerJoin(
+        cohortMemberships,
+        eq(users.id, cohortMemberships.userId)
+      )
+      .where(eq(cohortMemberships.cohortId, cohortId));
+  }
+
+  async getCohortModerators(cohortId: number): Promise<User[]> {
+    return db
+      .select({
+        id: users.id,
+        username: users.username,
+        fullName: users.fullName,
+        email: users.email,
+        role: users.role,
+      })
+      .from(users)
+      .innerJoin(
+        cohortMemberships,
+        eq(users.id, cohortMemberships.userId)
+      )
+      .where(
+        and(
+          eq(cohortMemberships.cohortId, cohortId),
+          eq(cohortMemberships.role, "moderator")
+        )
+      );
+  }
+
+  async isCohortModerator(userId: number, cohortId: number): Promise<boolean> {
+    const [membership] = await db
+      .select()
+      .from(cohortMemberships)
+      .where(
+        and(
+          eq(cohortMemberships.userId, userId),
+          eq(cohortMemberships.cohortId, cohortId),
+          eq(cohortMemberships.role, "moderator")
+        )
+      );
+    return !!membership;
   }
 }
 

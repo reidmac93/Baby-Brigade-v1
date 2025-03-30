@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertBabySchema, insertPostSchema } from "@shared/schema";
+import { insertBabySchema, insertPostSchema, insertCohortMembershipSchema } from "@shared/schema";
 import { log } from "./vite";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -148,6 +148,171 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (err) {
       log(`Error deleting post: ${err}`);
       res.status(500).json({ error: "Failed to delete post" });
+    }
+  });
+
+  // Get all members for a cohort
+  app.get("/api/cohort/:id/members", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const cohortId = parseInt(req.params.id);
+      const members = await storage.getCohortMembers(cohortId);
+      res.json(members);
+    } catch (err) {
+      log(`Error fetching cohort members: ${err}`);
+      res.status(500).json({ error: "Failed to fetch cohort members" });
+    }
+  });
+
+  // Get cohort moderators
+  app.get("/api/cohort/:id/moderators", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const cohortId = parseInt(req.params.id);
+      const moderators = await storage.getCohortModerators(cohortId);
+      res.json(moderators);
+    } catch (err) {
+      log(`Error fetching cohort moderators: ${err}`);
+      res.status(500).json({ error: "Failed to fetch cohort moderators" });
+    }
+  });
+
+  // Check if user is a moderator for a cohort
+  app.get("/api/cohort/:id/is-moderator", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const cohortId = parseInt(req.params.id);
+      const userId = req.user.id;
+      const isModerator = await storage.isCohortModerator(userId, cohortId);
+      res.json({ isModerator });
+    } catch (err) {
+      log(`Error checking moderator status: ${err}`);
+      res.status(500).json({ error: "Failed to check moderator status" });
+    }
+  });
+
+  // Create cohort membership (add a user to a cohort)
+  app.post("/api/cohort-membership", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const { cohortId, userId, role } = req.body;
+      
+      // Check if the requesting user is a moderator
+      const requestingUserId = req.user.id;
+      const isModerator = await storage.isCohortModerator(requestingUserId, cohortId);
+      
+      if (!isModerator && req.user.role !== 'admin') {
+        return res.status(403).json({ error: "Only moderators and admins can add members to a cohort" });
+      }
+      
+      const membershipData = insertCohortMembershipSchema.parse(req.body);
+      const membership = await storage.createCohortMembership(
+        membershipData.cohortId,
+        membershipData.userId,
+        membershipData.role || 'member'
+      );
+      
+      res.status(201).json(membership);
+    } catch (err) {
+      log(`Error creating cohort membership: ${err}`);
+      res.status(400).json({ error: "Invalid cohort membership data" });
+    }
+  });
+
+  // Update cohort membership role
+  app.put("/api/cohort-membership/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const membershipId = parseInt(req.params.id);
+      const { role } = req.body;
+      
+      if (!role || (role !== 'member' && role !== 'moderator')) {
+        return res.status(400).json({ error: "Invalid role" });
+      }
+      
+      // Get the membership to check the cohort
+      const membership = await storage.getCohortMembershipById(membershipId);
+      if (!membership) {
+        return res.status(404).json({ error: "Membership not found" });
+      }
+      
+      // Check if the requesting user is a moderator for this cohort
+      const requestingUserId = req.user.id;
+      const isModerator = await storage.isCohortModerator(requestingUserId, membership.cohortId);
+      
+      if (!isModerator && req.user.role !== 'admin') {
+        return res.status(403).json({ error: "Only moderators and admins can update membership roles" });
+      }
+      
+      const updatedMembership = await storage.updateCohortMembershipRole(membershipId, role);
+      res.json(updatedMembership);
+    } catch (err) {
+      log(`Error updating cohort membership: ${err}`);
+      res.status(500).json({ error: "Failed to update cohort membership" });
+    }
+  });
+
+  // Delete cohort membership (remove a user from a cohort)
+  app.delete("/api/cohort-membership/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const membershipId = parseInt(req.params.id);
+      
+      // Get the membership to check the cohort
+      const membership = await storage.getCohortMembershipById(membershipId);
+      if (!membership) {
+        return res.status(404).json({ error: "Membership not found" });
+      }
+      
+      // Check if the requesting user is a moderator for this cohort
+      const requestingUserId = req.user.id;
+      const isModerator = await storage.isCohortModerator(requestingUserId, membership.cohortId);
+      
+      if (!isModerator && req.user.role !== 'admin') {
+        return res.status(403).json({ error: "Only moderators and admins can remove members from a cohort" });
+      }
+      
+      const success = await storage.deleteCohortMembership(membershipId);
+      res.json({ success });
+    } catch (err) {
+      log(`Error deleting cohort membership: ${err}`);
+      res.status(500).json({ error: "Failed to delete cohort membership" });
+    }
+  });
+  
+  // Find a user by email
+  app.get("/api/user/by-email", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { email } = req.query;
+      
+      if (!email || typeof email !== 'string') {
+        return res.status(400).json({ error: "Email is required" });
+      }
+      
+      const user = await storage.getUserByEmail(email);
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Return limited information for privacy
+      res.json({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        fullName: user.fullName
+      });
+    } catch (err) {
+      log(`Error finding user by email: ${err}`);
+      res.status(500).json({ error: "Failed to find user" });
     }
   });
 
