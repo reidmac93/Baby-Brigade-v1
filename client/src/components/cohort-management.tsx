@@ -63,7 +63,7 @@ export function CohortManagement({ cohortId }: { cohortId: number }) {
   const addMemberMutation = useMutation({
     mutationFn: async (data: { email: string }) => {
       // First, find the user by email
-      const userResponse = await apiRequest("GET", `/api/user/find-by-email?email=${data.email}`);
+      const userResponse = await apiRequest("GET", `/api/user/by-email?email=${data.email}`);
       const foundUser = await userResponse.json();
       
       if (!foundUser || !foundUser.id) {
