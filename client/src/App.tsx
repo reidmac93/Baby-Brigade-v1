@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
 import HomePage from "@/pages/home-page";
 import ProfilePage from "@/pages/profile-page";
+import CohortPage from "@/pages/cohort-page";
 import ResetPasswordPage from "@/pages/reset-password-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { Navigation } from "@/components/ui/navigation";
@@ -20,6 +21,7 @@ function Router() {
         <Route path="/reset-password" component={ResetPasswordPage} />
         <ProtectedRoute path="/" component={HomePage} />
         <ProtectedRoute path="/profile" component={ProfilePage} />
+        <ProtectedRoute path="/cohorts/:id" component={CohortPage} />
         <Route component={NotFound} />
       </Switch>
     </>

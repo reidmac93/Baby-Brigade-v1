@@ -42,26 +42,26 @@ export function CohortManagement({ cohortId }: { cohortId: number }) {
 
   // Check if the current user is a moderator of this cohort
   const { data: moderatorStatus, isLoading: isCheckingModerator } = useQuery({
-    queryKey: ["/api/cohort", cohortId, "is-moderator"],
+    queryKey: ["/api/cohorts", cohortId, "is-moderator"],
     queryFn: async () => {
-      const res = await apiRequest("GET", `/api/cohort/${cohortId}/is-moderator`);
+      const res = await apiRequest("GET", `/api/cohorts/${cohortId}/is-moderator`);
       return await res.json();
     },
   });
 
   // Get all members of the cohort
   const { data: members, isLoading: isLoadingMembers } = useQuery({
-    queryKey: ["/api/cohort", cohortId, "members"],
+    queryKey: ["/api/cohorts", cohortId, "members"],
     queryFn: async () => {
       console.log("Fetching members for cohort", cohortId);
       console.log("User moderator status:", moderatorStatus);
       console.log("User role:", user?.role);
-      const res = await apiRequest("GET", `/api/cohort/${cohortId}/members`);
+      const res = await apiRequest("GET", `/api/cohorts/${cohortId}/members`);
       const data = await res.json();
       console.log("Received members data:", data);
       return data;
     },
-    enabled: !!moderatorStatus?.isModerator || user?.role === "admin",
+    enabled: !!moderatorStatus || user?.role === "admin",
   });
 
   // Create a new membership
@@ -90,7 +90,7 @@ export function CohortManagement({ cohortId }: { cohortId: number }) {
       });
       setInviteEmail("");
       setAddDialogOpen(false);
-      queryClient.invalidateQueries({ queryKey: ["/api/cohort", cohortId, "members"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cohorts", cohortId, "members"] });
     },
     onError: (error: Error) => {
       toast({
@@ -112,7 +112,7 @@ export function CohortManagement({ cohortId }: { cohortId: number }) {
         title: "Success",
         description: "Member role updated",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/cohort", cohortId, "members"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cohorts", cohortId, "members"] });
     },
     onError: (error: Error) => {
       toast({
@@ -134,7 +134,7 @@ export function CohortManagement({ cohortId }: { cohortId: number }) {
         title: "Success",
         description: "Member removed from cohort",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/cohort", cohortId, "members"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cohorts", cohortId, "members"] });
     },
     onError: (error: Error) => {
       toast({
@@ -146,7 +146,7 @@ export function CohortManagement({ cohortId }: { cohortId: number }) {
   });
 
   // If user is not a moderator and not an admin, don't render the component
-  if ((!moderatorStatus?.isModerator && user?.role !== "admin") && !isCheckingModerator) {
+  if (!isCheckingModerator && !moderatorStatus && user?.role !== "admin") {
     return null;
   }
 

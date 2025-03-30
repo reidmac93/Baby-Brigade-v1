@@ -69,7 +69,7 @@ export function PostCard({ post, user }: PostCardProps) {
     onSuccess: () => {
       setIsEditing(false);
       // Invalidate to refresh posts
-      queryClient.invalidateQueries({ queryKey: [`/api/cohort/${post.cohortId}/posts`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/cohorts', post.cohortId, 'posts'] });
       toast({
         title: "Success",
         description: "Post updated successfully",
@@ -92,7 +92,7 @@ export function PostCard({ post, user }: PostCardProps) {
     },
     onSuccess: () => {
       // Invalidate to refresh posts
-      queryClient.invalidateQueries({ queryKey: [`/api/cohort/${post.cohortId}/posts`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/cohorts', post.cohortId, 'posts'] });
       toast({
         title: "Success",
         description: "Post deleted successfully",

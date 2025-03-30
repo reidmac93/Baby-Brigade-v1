@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertBabySchema, insertPostSchema, insertCohortMembershipSchema } from "@shared/schema";
+import { insertBabySchema, insertPostSchema, insertCohortMembershipSchema, insertCohortSchema } from "@shared/schema";
 import { log } from "./vite";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -28,19 +28,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(baby);
   });
   
-  app.get("/api/cohort", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
-    const baby = await storage.getBabyByUserId(req.user!.id);
-    if (!baby || !baby.cohortId) return res.status(404).json({ error: "Cohort not found" });
-    
-    const cohort = await storage.getCohort(baby.cohortId);
-    if (!cohort) return res.status(404).json({ error: "Cohort not found" });
-    
-    res.json(cohort);
-  });
+  // This API route is deprecated and replaced by /api/user/cohorts
+  // The old route relied on baby's cohortId which is no longer the model
+  // we're using with user-created cohorts
 
-  app.get("/api/cohort/:id", async (req, res) => {
+  app.get("/api/cohorts/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     try {
@@ -68,7 +60,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/cohort/:id/posts", async (req, res) => {
+  app.get("/api/cohorts/:id/posts", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
@@ -152,7 +144,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all members for a cohort
-  app.get("/api/cohort/:id/members", async (req, res) => {
+  app.get("/api/cohorts/:id/members", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
@@ -166,7 +158,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get cohort moderators
-  app.get("/api/cohort/:id/moderators", async (req, res) => {
+  app.get("/api/cohorts/:id/moderators", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
@@ -180,14 +172,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Check if user is a moderator for a cohort
-  app.get("/api/cohort/:id/is-moderator", async (req, res) => {
+  app.get("/api/cohorts/:id/is-moderator", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
       const cohortId = parseInt(req.params.id);
       const userId = req.user.id;
       const isModerator = await storage.isCohortModerator(userId, cohortId);
-      res.json({ isModerator });
+      // Return just the boolean value directly for easier consumption by useQuery
+      res.json(isModerator);
     } catch (err) {
       log(`Error checking moderator status: ${err}`);
       res.status(500).json({ error: "Failed to check moderator status" });
@@ -313,6 +306,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (err) {
       log(`Error finding user by email: ${err}`);
       res.status(500).json({ error: "Failed to find user" });
+    }
+  });
+
+  // Create a new cohort
+  app.post("/api/cohorts", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { name, description } = insertCohortSchema.parse(req.body);
+      const creatorId = req.user.id;
+      
+      log(`Creating cohort "${name}" for user ${creatorId}`);
+      
+      const cohort = await storage.createCohort(name, description || null, creatorId);
+      
+      log(`Created cohort: ${JSON.stringify(cohort)}`);
+      res.status(201).json(cohort);
+    } catch (err) {
+      log(`Error creating cohort: ${err}`);
+      res.status(400).json({ error: "Invalid cohort data" });
+    }
+  });
+
+  // Get all cohorts
+  app.get("/api/cohorts", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const cohorts = await storage.getAllCohorts();
+      res.json(cohorts);
+    } catch (err) {
+      log(`Error fetching all cohorts: ${err}`);
+      res.status(500).json({ error: "Failed to fetch cohorts" });
+    }
+  });
+
+  // Get cohorts for the current user
+  app.get("/api/user/cohorts", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const userId = req.user.id;
+      const cohorts = await storage.getUserCohorts(userId);
+      res.json(cohorts);
+    } catch (err) {
+      log(`Error fetching user cohorts: ${err}`);
+      res.status(500).json({ error: "Failed to fetch user cohorts" });
     }
   });
 

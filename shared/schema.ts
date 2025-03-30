@@ -48,8 +48,12 @@ export const babies = pgTable("babies", {
 export const cohorts = pgTable("cohorts", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  startDate: date("start_date").notNull(),
-  endDate: date("end_date").notNull(),
+  description: text("description"),
+  creatorId: integer("creator_id").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  // Keep startDate and endDate for backward compatibility, but they're optional now
+  startDate: date("start_date"),
+  endDate: date("end_date"),
 });
 
 export const posts = pgTable("posts", {
@@ -82,9 +86,14 @@ export const insertPostSchema = createInsertSchema(posts).pick({
   cohortId: true,
 });
 
+export const insertCohortSchema = createInsertSchema(cohorts).pick({
+  name: true,
+  description: true,
+});
+
 export const insertCohortMembershipSchema = createInsertSchema(cohortMemberships).pick({
   userId: true,
-  cohortId: true,
+  cohortId: true, 
   role: true,
 });
 
@@ -100,6 +109,7 @@ export const resetPasswordSchema = z.object({
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertBaby = z.infer<typeof insertBabySchema>;
 export type InsertPost = z.infer<typeof insertPostSchema>;
+export type InsertCohort = z.infer<typeof insertCohortSchema>;
 export type InsertCohortMembership = z.infer<typeof insertCohortMembershipSchema>;
 export type ForgotPassword = z.infer<typeof forgotPasswordSchema>;
 export type ResetPassword = z.infer<typeof resetPasswordSchema>;

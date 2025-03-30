@@ -22,6 +22,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation, Link } from "wouter";
 import { format } from "date-fns";
 import { CohortManagement } from "@/components/cohort-management";
+import { CohortList } from "@/components/cohort-list";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function ProfilePage() {
   const { user, isNewUser, setIsNewUser } = useAuth();
@@ -220,7 +222,8 @@ export default function ProfilePage() {
                       <div>
                         <Label>Week Range</Label>
                         <p className="mt-1">
-                          {format(new Date(cohort.startDate), "MMM d, yyyy")} - {format(new Date(cohort.endDate), "MMM d, yyyy")}
+                          {cohort.startDate ? format(new Date(cohort.startDate as string), "MMM d, yyyy") : "N/A"} - 
+                          {cohort.endDate ? format(new Date(cohort.endDate as string), "MMM d, yyyy") : "N/A"}
                         </p>
                       </div>
                       <div className="flex flex-col">

@@ -36,12 +36,18 @@ export interface IStorage {
   updateUserRole(userId: number, role: string): Promise<User>;
   getBabyByUserId(userId: number): Promise<Baby | undefined>;
   createBaby(insertBaby: InsertBaby, userId: number): Promise<Baby>;
+  // Cohort methods
   getCohort(id: number): Promise<Cohort | undefined>;
+  getAllCohorts(): Promise<Cohort[]>;
+  getUserCohorts(userId: number): Promise<Cohort[]>;
+  createCohort(name: string, description: string | null, creatorId: number): Promise<Cohort>;
+  // Post methods
   createPost(insertPost: InsertPost, userId: number): Promise<Post>;
   getPostsByCohort(cohortId: number): Promise<Post[]>;
   getPost(id: number): Promise<Post | undefined>;
   updatePost(id: number, content: string, userId: number): Promise<Post | undefined>;
   deletePost(id: number, userId: number): Promise<boolean>;
+  // Password reset methods
   createPasswordResetToken(userId: number): Promise<string>;
   getPasswordResetTokenByToken(token: string): Promise<PasswordResetToken | undefined>;
   markTokenAsUsed(tokenId: number): Promise<void>;
@@ -189,6 +195,7 @@ export class DatabaseStorage implements IStorage {
       return existingCohort;
     }
 
+    // Use admin user (id: 1) as the creator for system-generated cohorts
     // Create new cohort
     const [cohort] = await db
       .insert(cohorts)
@@ -196,6 +203,7 @@ export class DatabaseStorage implements IStorage {
         name: `${start.toLocaleString("default", { month: "long", year: "numeric" })} Babies`,
         startDate: start.toISOString().split("T")[0],
         endDate: end.toISOString().split("T")[0],
+        creatorId: 1, // reidmac93 is admin, with ID 1
       })
       .returning();
 
@@ -207,6 +215,50 @@ export class DatabaseStorage implements IStorage {
     return cohort;
   }
 
+  async getAllCohorts(): Promise<Cohort[]> {
+    return db
+      .select()
+      .from(cohorts)
+      .orderBy(desc(cohorts.createdAt));
+  }
+
+  async getUserCohorts(userId: number): Promise<Cohort[]> {
+    return db
+      .select({
+        id: cohorts.id,
+        name: cohorts.name,
+        description: cohorts.description,
+        creatorId: cohorts.creatorId,
+        createdAt: cohorts.createdAt,
+        startDate: cohorts.startDate,
+        endDate: cohorts.endDate,
+      })
+      .from(cohorts)
+      .innerJoin(
+        cohortMemberships,
+        eq(cohorts.id, cohortMemberships.cohortId)
+      )
+      .where(eq(cohortMemberships.userId, userId))
+      .orderBy(desc(cohorts.createdAt));
+  }
+
+  async createCohort(name: string, description: string | null, creatorId: number): Promise<Cohort> {
+    // Create the cohort
+    const [cohort] = await db
+      .insert(cohorts)
+      .values({
+        name,
+        description,
+        creatorId,
+      })
+      .returning();
+
+    // Automatically make the creator a moderator of the cohort
+    await this.createCohortMembership(cohort.id, creatorId, "moderator");
+    
+    return cohort;
+  }
+
   async createPost(insertPost: InsertPost, userId: number): Promise<Post> {
     const [post] = await db
       .insert(posts)
@@ -214,7 +266,6 @@ export class DatabaseStorage implements IStorage {
         content: insertPost.content,
         userId: userId,
         cohortId: insertPost.cohortId,
-        createdAt: new Date(),
       })
       .returning();
 
@@ -285,7 +336,6 @@ export class DatabaseStorage implements IStorage {
         cohortId,
         userId,
         role,
-        createdAt: new Date(),
       })
       .returning();
     return membership;
