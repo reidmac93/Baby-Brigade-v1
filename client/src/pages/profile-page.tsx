@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Baby, insertBabySchema } from "@shared/schema";
+import { Baby, insertBabySchema, Cohort } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -14,20 +14,29 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Loader2, Baby as BabyIcon } from "lucide-react";
+import { Loader2, Baby as BabyIcon, Users, Calendar } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
+import { format } from "date-fns";
 
 export default function ProfilePage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
-  const { data: baby, isLoading } = useQuery<Baby>({
+  // Fetch baby information
+  const { data: baby, isLoading: isBabyLoading } = useQuery<Baby>({
     queryKey: ["/api/baby"],
+  });
+  
+  // Fetch cohort information
+  const { data: cohort, isLoading: isCohortLoading } = useQuery<Cohort>({
+    queryKey: ["/api/cohort"],
+    // Only fetch cohort if baby exists
+    enabled: !!baby,
   });
 
   const form = useForm({
@@ -61,6 +70,7 @@ export default function ProfilePage() {
     },
   });
 
+  const isLoading = isBabyLoading || (baby && isCohortLoading);
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -88,6 +98,45 @@ export default function ProfilePage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Cohort Information Card - Only show if baby and cohort exist */}
+        {baby && cohort && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-2xl flex items-center gap-2">
+                <Users className="h-6 w-6" />
+                Your Cohort
+              </CardTitle>
+              <CardDescription>
+                Connect with other parents whose babies were born around the same time
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col gap-2">
+                <Label>Cohort Name</Label>
+                <p className="text-lg font-medium">{cohort.name}</p>
+              </div>
+              
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <Label>Week Range</Label>
+                  <p className="mt-1">
+                    {format(new Date(cohort.startDate), "MMM d, yyyy")} - {format(new Date(cohort.endDate), "MMM d, yyyy")}
+                  </p>
+                </div>
+                <div className="flex flex-col">
+                  <Label>Cohort Feed</Label>
+                  <Button asChild variant="outline" className="mt-2 w-fit">
+                    <Link href="/">
+                      <Calendar className="h-4 w-4 mr-2" />
+                      Go to Feed
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Baby Information Card */}
         <Card>
