@@ -53,8 +53,13 @@ export function CohortManagement({ cohortId }: { cohortId: number }) {
   const { data: members, isLoading: isLoadingMembers } = useQuery({
     queryKey: ["/api/cohort", cohortId, "members"],
     queryFn: async () => {
+      console.log("Fetching members for cohort", cohortId);
+      console.log("User moderator status:", moderatorStatus);
+      console.log("User role:", user?.role);
       const res = await apiRequest("GET", `/api/cohort/${cohortId}/members`);
-      return await res.json();
+      const data = await res.json();
+      console.log("Received members data:", data);
+      return data;
     },
     enabled: !!moderatorStatus?.isModerator || user?.role === "admin",
   });
@@ -233,6 +238,7 @@ export function CohortManagement({ cohortId }: { cohortId: number }) {
                       <div>
                         <div className="font-medium">{member.fullName}</div>
                         <div className="text-sm text-muted-foreground">{member.email}</div>
+                        <div className="text-xs text-muted-foreground">Membership ID: {member.membershipId || 'N/A'}</div>
                       </div>
                       <div className="flex items-center gap-2">
                         {member.membershipRole === "moderator" && (

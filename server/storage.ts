@@ -52,8 +52,8 @@ export interface IStorage {
   getCohortMembershipById(id: number): Promise<CohortMembership | undefined>;
   getCohortMembershipsByUserId(userId: number): Promise<CohortMembership[]>;
   getCohortMembershipsByCohortId(cohortId: number): Promise<CohortMembership[]>;
-  getCohortMembers(cohortId: number): Promise<User[]>;
-  getCohortModerators(cohortId: number): Promise<User[]>;
+  getCohortMembers(cohortId: number): Promise<any[]>; // Returns users with their membership details
+  getCohortModerators(cohortId: number): Promise<any[]>; // Returns moderators with their membership details
   isCohortModerator(userId: number, cohortId: number): Promise<boolean>;
 }
 
@@ -327,7 +327,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(cohortMemberships.cohortId, cohortId));
   }
 
-  async getCohortMembers(cohortId: number): Promise<User[]> {
+  async getCohortMembers(cohortId: number): Promise<any[]> {
     return db
       .select({
         id: users.id,
@@ -336,6 +336,8 @@ export class DatabaseStorage implements IStorage {
         fullName: users.fullName,
         email: users.email,
         role: users.role,
+        membershipId: cohortMemberships.id,
+        membershipRole: cohortMemberships.role,
       })
       .from(users)
       .innerJoin(
@@ -345,7 +347,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(cohortMemberships.cohortId, cohortId));
   }
 
-  async getCohortModerators(cohortId: number): Promise<User[]> {
+  async getCohortModerators(cohortId: number): Promise<any[]> {
     return db
       .select({
         id: users.id,
@@ -354,6 +356,8 @@ export class DatabaseStorage implements IStorage {
         fullName: users.fullName,
         email: users.email,
         role: users.role,
+        membershipId: cohortMemberships.id,
+        membershipRole: cohortMemberships.role,
       })
       .from(users)
       .innerJoin(
