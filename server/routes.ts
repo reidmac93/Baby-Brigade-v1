@@ -27,6 +27,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!baby) return res.status(404).json({ error: "Baby not found" });
     res.json(baby);
   });
+  
+  app.get("/api/cohort", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    const baby = await storage.getBabyByUserId(req.user!.id);
+    if (!baby || !baby.cohortId) return res.status(404).json({ error: "Cohort not found" });
+    
+    const cohort = await storage.getCohort(baby.cohortId);
+    if (!cohort) return res.status(404).json({ error: "Cohort not found" });
+    
+    res.json(cohort);
+  });
+
+  app.get("/api/cohort/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const cohortId = parseInt(req.params.id);
+      const cohort = await storage.getCohort(cohortId);
+      if (!cohort) return res.status(404).json({ error: "Cohort not found" });
+      
+      res.json(cohort);
+    } catch (err) {
+      res.status(500).json({ error: "Failed to fetch cohort" });
+    }
+  });
 
   app.post("/api/posts", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -54,7 +80,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const postsWithUsers = await Promise.all(
         posts.map(async (post) => {
-          const user = await storage.getUser(post.userId);
+          // We can be sure that userId is not null in our application
+          const user = await storage.getUser(post.userId!);
           return { ...post, user };
         })
       );

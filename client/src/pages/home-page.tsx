@@ -22,7 +22,7 @@ export default function HomePage() {
   });
 
   const { data: posts = [], isLoading: isPostsLoading } = useQuery<PostWithUser[]>({
-    queryKey: ["/api/cohort", baby?.cohortId, "posts"],
+    queryKey: [`/api/cohort/${baby?.cohortId}/posts`],
     enabled: !!baby?.cohortId,
   });
 
