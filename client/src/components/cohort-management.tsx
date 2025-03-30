@@ -204,7 +204,7 @@ export function CohortManagement({ cohortId }: { cohortId: number }) {
           <div className="space-y-4">
             {members && members.length > 0 ? (
               <div className="divide-y">
-                {members.map((member) => (
+                {members.map((member: CohortMember) => (
                   <div key={member.id} className="py-3 flex items-center justify-between">
                     <div>
                       <div className="font-medium">{member.fullName}</div>

@@ -1,12 +1,11 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { updateAllBirthWeeks } from "./db";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-
-app.use((req, res, next) => {
 
 app.post('/api/migrate/birthweek', async (req, res) => {
   try {
@@ -18,6 +17,7 @@ app.post('/api/migrate/birthweek', async (req, res) => {
   }
 });
 
+app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;

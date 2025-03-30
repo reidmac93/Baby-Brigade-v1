@@ -17,7 +17,7 @@ import {
   cohortMemberships,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, gt } from "drizzle-orm";
+import { eq, and, desc, gt, sql } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -332,6 +332,7 @@ export class DatabaseStorage implements IStorage {
       .select({
         id: users.id,
         username: users.username,
+        password: users.password,
         fullName: users.fullName,
         email: users.email,
         role: users.role,
@@ -349,6 +350,7 @@ export class DatabaseStorage implements IStorage {
       .select({
         id: users.id,
         username: users.username,
+        password: users.password,
         fullName: users.fullName,
         email: users.email,
         role: users.role,
