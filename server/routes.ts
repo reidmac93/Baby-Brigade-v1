@@ -75,7 +75,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const cohortId = parseInt(req.params.id);
       log(`Fetching posts for cohort ${cohortId}`);
 
-      const posts = await storage.getPostsByCohort(cohortId);
+      let posts = await storage.getPostsByCohort(cohortId);
+      
+      // Sort posts by createdAt in descending order (newest first)
+      posts = posts.sort((a, b) => {
+        // Since createdAt has a defaultNow(), it should always exist
+        return new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime();
+      });
+      
       log(`Found ${posts.length} posts`);
 
       const postsWithUsers = await Promise.all(

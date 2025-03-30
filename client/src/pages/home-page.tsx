@@ -4,13 +4,20 @@ import { Baby, Cohort, Post, User } from "@shared/schema";
 import { CohortCard } from "@/components/cohort-card";
 import { PostCard } from "@/components/post-card";
 import { CreatePost } from "@/components/create-post";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Redirect } from "wouter";
+import { useEffect, useState } from "react";
 
 type PostWithUser = Post & { user: User };
 
 export default function HomePage() {
   const { user } = useAuth();
+  // Track post IDs that have been seen
+  const [seenPostIds, setSeenPostIds] = useState<Set<number>>(new Set());
+  // Track if there are new posts since last view
+  const [hasNewPosts, setHasNewPosts] = useState(false);
 
   const { data: baby, isLoading: isBabyLoading } = useQuery<Baby>({
     queryKey: ["/api/baby"],
@@ -21,10 +28,37 @@ export default function HomePage() {
     enabled: !!baby?.cohortId,
   });
 
-  const { data: posts = [], isLoading: isPostsLoading } = useQuery<PostWithUser[]>({
+  const { 
+    data: posts = [], 
+    isLoading: isPostsLoading,
+    isFetching: isPostsFetching,
+    refetch: refetchPosts
+  } = useQuery<PostWithUser[]>({
     queryKey: [`/api/cohort/${baby?.cohortId}/posts`],
     enabled: !!baby?.cohortId,
+    refetchInterval: 10000, // Refetch posts every 10 seconds
   });
+  
+  // Check for new posts when posts are fetched
+  useEffect(() => {
+    if (posts.length > 0) {
+      const currentPostIds = new Set(posts.map(post => post.id));
+      const newPosts = posts.filter(post => !seenPostIds.has(post.id));
+      
+      if (newPosts.length > 0 && seenPostIds.size > 0) {
+        setHasNewPosts(true);
+      }
+      
+      // Update seen posts after showing new post indicator
+      setSeenPostIds(currentPostIds);
+    }
+  }, [posts]);
+  
+  // Function to handle manual refresh
+  const handleManualRefresh = () => {
+    refetchPosts();
+    setHasNewPosts(false); // Clear the new posts indicator
+  };
 
   if (isBabyLoading) {
     return (
@@ -49,7 +83,31 @@ export default function HomePage() {
 
         {/* Main Content - Post Wall */}
         <div className="lg:w-3/4">
-          <h2 className="text-2xl font-bold mb-6">Cohort Feed</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold">Cohort Feed</h2>
+            <div className="flex items-center gap-3">
+              {isPostsFetching && !isPostsLoading && (
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Refreshing...
+                </div>
+              )}
+              {hasNewPosts && !isPostsFetching && (
+                <Badge variant="default" className="animate-pulse">
+                  New posts available
+                </Badge>
+              )}
+              <Button 
+                onClick={handleManualRefresh} 
+                variant={hasNewPosts ? "default" : "outline"}
+                size="sm"
+                disabled={isPostsFetching}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+            </div>
+          </div>
           <div className="space-y-6">
             <CreatePost cohortId={baby.cohortId!} />
             {isPostsLoading ? (
