@@ -5,6 +5,7 @@ import {
   date,
   timestamp,
   integer,
+  uuid,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -14,7 +15,16 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   fullName: text("full_name").notNull(),
-  email: text("email").notNull(),
+  email: text("email").notNull().unique(),
+});
+
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  token: uuid("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  used: integer("used").default(0),
 });
 
 export const babies = pgTable("babies", {
@@ -63,10 +73,22 @@ export const insertPostSchema = createInsertSchema(posts).pick({
   cohortId: true,
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().email("Invalid email address"),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().uuid("Invalid reset token"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertBaby = z.infer<typeof insertBabySchema>;
 export type InsertPost = z.infer<typeof insertPostSchema>;
+export type ForgotPassword = z.infer<typeof forgotPasswordSchema>;
+export type ResetPassword = z.infer<typeof resetPasswordSchema>;
 export type User = typeof users.$inferSelect;
 export type Baby = typeof babies.$inferSelect;
 export type Cohort = typeof cohorts.$inferSelect;
 export type Post = typeof posts.$inferSelect;
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;

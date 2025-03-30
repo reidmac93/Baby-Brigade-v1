@@ -1,4 +1,3 @@
-import { IStorage } from "./types";
 import {
   User,
   Baby,
@@ -7,19 +6,42 @@ import {
   InsertUser,
   InsertBaby,
   InsertPost,
+  PasswordResetToken,
+  users,
+  babies,
+  cohorts,
+  posts,
+  passwordResetTokens,
 } from "@shared/schema";
-import { users, babies, cohorts, posts } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, gt } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
 import { addMonths, startOfMonth, endOfMonth } from "date-fns";
+import { randomUUID } from "crypto";
 
 const PostgresSessionStore = connectPg(session);
 
+export interface IStorage {
+  sessionStore: session.Store;
+  getUser(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(insertUser: InsertUser): Promise<User>;
+  updateUserPassword(userId: number, hashedPassword: string): Promise<User>;
+  getBabyByUserId(userId: number): Promise<Baby | undefined>;
+  createBaby(insertBaby: InsertBaby, userId: number): Promise<Baby>;
+  getCohort(id: number): Promise<Cohort | undefined>;
+  createPost(insertPost: InsertPost, userId: number): Promise<Post>;
+  getPostsByCohort(cohortId: number): Promise<Post[]>;
+  createPasswordResetToken(userId: number): Promise<string>;
+  getPasswordResetTokenByToken(token: string): Promise<PasswordResetToken | undefined>;
+  markTokenAsUsed(tokenId: number): Promise<void>;
+}
+
 export class DatabaseStorage implements IStorage {
-  sessionStore: session.SessionStore;
+  sessionStore: session.Store;
 
   constructor() {
     this.sessionStore = new PostgresSessionStore({
@@ -40,6 +62,61 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.username, username));
     return user;
   }
+  
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email));
+    return user;
+  }
+  
+  async updateUserPassword(userId: number, hashedPassword: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ password: hashedPassword })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+  
+  async createPasswordResetToken(userId: number): Promise<string> {
+    // Create token that expires in 1 hour
+    const token = randomUUID();
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 1);
+
+    await db.insert(passwordResetTokens).values({
+      userId,
+      token,
+      expiresAt,
+      used: 0,
+    });
+
+    return token;
+  }
+
+  async getPasswordResetTokenByToken(token: string): Promise<PasswordResetToken | undefined> {
+    const now = new Date();
+    const [resetToken] = await db
+      .select()
+      .from(passwordResetTokens)
+      .where(
+        and(
+          eq(passwordResetTokens.token, token),
+          gt(passwordResetTokens.expiresAt, now),
+          eq(passwordResetTokens.used, 0)
+        )
+      );
+    return resetToken;
+  }
+
+  async markTokenAsUsed(tokenId: number): Promise<void> {
+    await db
+      .update(passwordResetTokens)
+      .set({ used: 1 })
+      .where(eq(passwordResetTokens.id, tokenId));
+  }
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db.insert(users).values(insertUser).returning();
@@ -58,9 +135,9 @@ export class DatabaseStorage implements IStorage {
       .insert(babies)
       .values({
         name: insertBaby.name,
-        birthDate: birthDate,
-        birthWeek: birthWeek,
-        userId: userId,
+        birthDate: birthDate.toISOString().split('T')[0],
+        birthWeek: birthWeek.toISOString().split('T')[0],
+        userId,
         cohortId: cohort.id,
       })
       .returning();

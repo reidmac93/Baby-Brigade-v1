@@ -4,7 +4,13 @@ import {
   useMutation,
   UseMutationResult,
 } from "@tanstack/react-query";
-import { insertUserSchema, User as SelectUser, InsertUser } from "@shared/schema";
+import { 
+  insertUserSchema, 
+  User as SelectUser, 
+  InsertUser, 
+  ForgotPassword, 
+  ResetPassword
+} from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -15,6 +21,8 @@ type AuthContextType = {
   loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<SelectUser, Error, InsertUser>;
+  forgotPasswordMutation: UseMutationResult<{message: string, token?: string}, Error, ForgotPassword>;
+  resetPasswordMutation: UseMutationResult<{message: string}, Error, ResetPassword>;
 };
 
 type LoginData = Pick<InsertUser, "username" | "password">;
@@ -66,6 +74,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  const forgotPasswordMutation = useMutation({
+    mutationFn: async (data: ForgotPassword) => {
+      const res = await apiRequest("POST", "/api/forgot-password", data);
+      return await res.json();
+    },
+    onSuccess: (response) => {
+      toast({
+        title: "Password Reset Requested",
+        description: response.message,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Request Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  const resetPasswordMutation = useMutation({
+    mutationFn: async (data: ResetPassword) => {
+      const res = await apiRequest("POST", "/api/reset-password", data);
+      return await res.json();
+    },
+    onSuccess: (response) => {
+      toast({
+        title: "Password Reset Successful",
+        description: response.message,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Reset Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const logoutMutation = useMutation({
     mutationFn: async () => {
       await apiRequest("POST", "/api/logout");
@@ -91,6 +139,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginMutation,
         logoutMutation,
         registerMutation,
+        forgotPasswordMutation,
+        resetPasswordMutation,
       }}
     >
       {children}

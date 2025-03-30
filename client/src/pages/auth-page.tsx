@@ -7,21 +7,30 @@ import { Form } from "@/components/ui/form";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertUserSchema, InsertUser } from "@shared/schema";
+import { insertUserSchema, InsertUser, forgotPasswordSchema, ForgotPassword } from "@shared/schema";
 import { Loader2 } from "lucide-react";
 import { Redirect, useLocation } from "wouter";
 
+type AuthView = "login" | "register" | "forgotPassword";
+
 export default function AuthPage() {
-  const { user, loginMutation, registerMutation } = useAuth();
-  const [isLogin, setIsLogin] = useState(true);
+  const { user, loginMutation, registerMutation, forgotPasswordMutation } = useAuth();
+  const [view, setView] = useState<AuthView>("login");
   const [, setLocation] = useLocation();
 
-  const form = useForm<InsertUser>({
+  const loginForm = useForm<InsertUser>({
     resolver: zodResolver(insertUserSchema),
     defaultValues: {
       username: "",
       password: "",
       fullName: "",
+      email: "",
+    },
+  });
+
+  const forgotPasswordForm = useForm<ForgotPassword>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: {
       email: "",
     },
   });
@@ -32,7 +41,7 @@ export default function AuthPage() {
   }
 
   const onSubmit = (data: InsertUser) => {
-    if (isLogin) {
+    if (view === "login") {
       loginMutation.mutate({
         username: data.username,
         password: data.password,
@@ -42,7 +51,19 @@ export default function AuthPage() {
     }
   };
 
-  const isPending = loginMutation.isPending || registerMutation.isPending;
+  const onForgotPasswordSubmit = (data: ForgotPassword) => {
+    forgotPasswordMutation.mutate(data, {
+      onSuccess: () => {
+        // If we have the token in our response (for demo purposes), show success message
+        setView("login");
+      },
+    });
+  };
+
+  const isPending = 
+    loginMutation.isPending || 
+    registerMutation.isPending || 
+    forgotPasswordMutation.isPending;
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
@@ -50,55 +71,148 @@ export default function AuthPage() {
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="text-2xl font-bold">
-              {isLogin ? "Welcome Back" : "Join Our Community"}
+              {view === "login" 
+                ? "Welcome Back" 
+                : view === "register" 
+                  ? "Join Our Community" 
+                  : "Reset Your Password"}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
-                  <Input {...form.register("username")} />
-                </div>
+            {view === "login" && (
+              <Form {...loginForm}>
+                <form onSubmit={loginForm.handleSubmit(onSubmit)} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="username">Username</Label>
+                    <Input {...loginForm.register("username")} />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input type="password" {...form.register("password")} />
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input type="password" {...loginForm.register("password")} />
+                  </div>
 
-                {!isLogin && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="fullName">Full Name</Label>
-                      <Input {...form.register("fullName")} />
-                    </div>
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={isPending}
+                  >
+                    {isPending ? (
+                      <span className="flex items-center">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Please wait
+                      </span>
+                    ) : (
+                      "Login"
+                    )}
+                  </Button>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input type="email" {...form.register("email")} />
-                    </div>
-                  </>
-                )}
+                  <div className="mt-4 flex flex-col gap-2">
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="text-sm"
+                      onClick={() => setView("register")}
+                    >
+                      Need an account? Register
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="text-sm"
+                      onClick={() => setView("forgotPassword")}
+                    >
+                      Forgot password?
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            )}
 
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={isPending}
-                >
-                  {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {isLogin ? "Login" : "Register"}
-                </Button>
+            {view === "register" && (
+              <Form {...loginForm}>
+                <form onSubmit={loginForm.handleSubmit(onSubmit)} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="username">Username</Label>
+                    <Input {...loginForm.register("username")} />
+                  </div>
 
-                <Button
-                  type="button"
-                  variant="link"
-                  className="w-full"
-                  onClick={() => setIsLogin(!isLogin)}
-                >
-                  {isLogin ? "Need an account? Register" : "Have an account? Login"}
-                </Button>
-              </form>
-            </Form>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input type="password" {...loginForm.register("password")} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="fullName">Full Name</Label>
+                    <Input {...loginForm.register("fullName")} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input type="email" {...loginForm.register("email")} />
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={isPending}
+                  >
+                    {isPending ? (
+                      <span className="flex items-center">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Please wait
+                      </span>
+                    ) : (
+                      "Register"
+                    )}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="w-full mt-4"
+                    onClick={() => setView("login")}
+                  >
+                    Already have an account? Login
+                  </Button>
+                </form>
+              </Form>
+            )}
+
+            {view === "forgotPassword" && (
+              <Form {...forgotPasswordForm}>
+                <form onSubmit={forgotPasswordForm.handleSubmit(onForgotPasswordSubmit)} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input type="email" {...forgotPasswordForm.register("email")} />
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={isPending}
+                  >
+                    {isPending ? (
+                      <span className="flex items-center">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Please wait
+                      </span>
+                    ) : (
+                      "Send Reset Link"
+                    )}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="w-full mt-4"
+                    onClick={() => setView("login")}
+                  >
+                    Back to login
+                  </Button>
+                </form>
+              </Form>
+            )}
           </CardContent>
         </Card>
       </div>
