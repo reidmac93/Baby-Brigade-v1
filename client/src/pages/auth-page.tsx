@@ -85,12 +85,24 @@ export default function AuthPage() {
                   <div className="space-y-2">
                     <Label htmlFor="username">Username</Label>
                     <Input {...loginForm.register("username")} />
+                    {loginForm.formState.errors.username && (
+                      <p className="text-sm text-red-500">{loginForm.formState.errors.username.message}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="password">Password</Label>
                     <Input type="password" {...loginForm.register("password")} />
+                    {loginForm.formState.errors.password && (
+                      <p className="text-sm text-red-500">{loginForm.formState.errors.password.message}</p>
+                    )}
                   </div>
+
+                  {loginMutation.error && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
+                      {loginMutation.error.message}
+                    </div>
+                  )}
 
                   <Button
                     type="submit"
@@ -135,22 +147,40 @@ export default function AuthPage() {
                   <div className="space-y-2">
                     <Label htmlFor="username">Username</Label>
                     <Input {...loginForm.register("username")} />
+                    {loginForm.formState.errors.username && (
+                      <p className="text-sm text-red-500">{loginForm.formState.errors.username.message}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="password">Password</Label>
                     <Input type="password" {...loginForm.register("password")} />
+                    {loginForm.formState.errors.password && (
+                      <p className="text-sm text-red-500">{loginForm.formState.errors.password.message}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="fullName">Full Name</Label>
                     <Input {...loginForm.register("fullName")} />
+                    {loginForm.formState.errors.fullName && (
+                      <p className="text-sm text-red-500">{loginForm.formState.errors.fullName.message}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
                     <Input type="email" {...loginForm.register("email")} />
+                    {loginForm.formState.errors.email && (
+                      <p className="text-sm text-red-500">{loginForm.formState.errors.email.message}</p>
+                    )}
                   </div>
+
+                  {registerMutation.error && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
+                      {registerMutation.error.message}
+                    </div>
+                  )}
 
                   <Button
                     type="submit"
@@ -185,7 +215,16 @@ export default function AuthPage() {
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
                     <Input type="email" {...forgotPasswordForm.register("email")} />
+                    {forgotPasswordForm.formState.errors.email && (
+                      <p className="text-sm text-red-500">{forgotPasswordForm.formState.errors.email.message}</p>
+                    )}
                   </div>
+
+                  {forgotPasswordMutation.error && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
+                      {forgotPasswordMutation.error.message}
+                    </div>
+                  )}
 
                   <Button
                     type="submit"
