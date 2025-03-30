@@ -14,7 +14,7 @@ import { Redirect, useLocation } from "wouter";
 type AuthView = "login" | "register" | "forgotPassword";
 
 export default function AuthPage() {
-  const { user, loginMutation, registerMutation, forgotPasswordMutation } = useAuth();
+  const { user, isNewUser, setIsNewUser, loginMutation, registerMutation, forgotPasswordMutation } = useAuth();
   const [view, setView] = useState<AuthView>("login");
   const [, setLocation] = useLocation();
 

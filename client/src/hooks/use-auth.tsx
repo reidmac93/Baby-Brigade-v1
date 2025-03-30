@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext } from "react";
+import { createContext, ReactNode, useContext, useState } from "react";
 import {
   useQuery,
   useMutation,
@@ -18,6 +18,8 @@ type AuthContextType = {
   user: SelectUser | null;
   isLoading: boolean;
   error: Error | null;
+  isNewUser: boolean;
+  setIsNewUser: (value: boolean) => void;
   loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<SelectUser, Error, InsertUser>;
@@ -31,6 +33,8 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+  const [isNewUser, setIsNewUser] = useState(false);
+  
   const {
     data: user,
     error,
@@ -64,6 +68,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/user"], user);
+      // Set the flag to indicate this is a new user that just registered
+      setIsNewUser(true);
+      // Show a welcome message with instructions
+      toast({
+        title: "Welcome to BabyConnect!",
+        description: "Please add your baby's information to join a cohort.",
+      });
     },
     onError: (error: Error) => {
       toast({
@@ -136,6 +147,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user: user ?? null,
         isLoading,
         error,
+        isNewUser,
+        setIsNewUser,
         loginMutation,
         logoutMutation,
         registerMutation,
