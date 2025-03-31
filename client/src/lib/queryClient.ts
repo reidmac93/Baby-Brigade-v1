@@ -57,15 +57,27 @@ export const getQueryFn: <T>(options: {
     // Handle array-based query keys to support hierarchical API paths
     let url: string;
     if (Array.isArray(queryKey) && queryKey.length > 1) {
-      // If it's a hierarchical path like ['/api/cohorts', cohortId, 'posts']
+      // If the first segment is '/api/cohorts', make sure we use plural form
+      let firstSegment = queryKey[0] as string;
+      
+      // Fix common singular/plural inconsistencies
+      if (firstSegment === '/api/cohort') {
+        firstSegment = '/api/cohorts';
+      }
+      
       // Convert to '/api/cohorts/{cohortId}/posts'
       url = queryKey.reduce((path, segment, index) => {
-        if (index === 0) return segment as string;
+        if (index === 0) return firstSegment;
         return `${path}/${segment}`;
       }, '');
     } else {
       // Simple string path
       url = queryKey[0] as string;
+      
+      // Fix common singular/plural inconsistencies for simple paths
+      if (url.startsWith('/api/cohort/')) {
+        url = url.replace('/api/cohort/', '/api/cohorts/');
+      }
     }
     console.log(`Fetching from: ${url}`);
     
