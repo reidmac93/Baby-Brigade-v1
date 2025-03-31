@@ -43,6 +43,7 @@ export interface IStorage {
   getAllCohorts(): Promise<Cohort[]>;
   getUserCohorts(userId: number): Promise<Cohort[]>;
   createCohort(name: string, description: string | null, creatorId: number): Promise<Cohort>;
+  getCohortBabiesWithParents(cohortId: number): Promise<any[]>; // Returns babies with their parent info
   // Post methods
   createPost(insertPost: InsertPost, userId: number): Promise<Post>;
   getPostsByCohort(cohortId: number): Promise<Post[]>;
@@ -305,6 +306,32 @@ export class DatabaseStorage implements IStorage {
     await this.createCohortMembership(cohort.id, creatorId, "moderator");
     
     return cohort;
+  }
+  
+  async getCohortBabiesWithParents(cohortId: number): Promise<any[]> {
+    // Get all members of the cohort
+    const cohortMembers = await this.getCohortMembers(cohortId);
+    const membersWithBabies = [];
+    
+    // For each member, get their baby information if it exists
+    for (const member of cohortMembers) {
+      const baby = await this.getBabyByUserId(member.id);
+      if (baby) {
+        membersWithBabies.push({
+          user: {
+            id: member.id,
+            username: member.username,
+            fullName: member.fullName,
+            email: member.email,
+            role: member.role,
+            membershipRole: member.membershipRole
+          },
+          baby: baby
+        });
+      }
+    }
+    
+    return membersWithBabies;
   }
 
   async createPost(insertPost: InsertPost, userId: number): Promise<Post> {

@@ -408,6 +408,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch user cohorts" });
     }
   });
+  
+  // Get babies with their parents for a cohort
+  app.get("/api/cohorts/:id/babies", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const cohortId = parseInt(req.params.id);
+      log(`Fetching babies and parents for cohort ${cohortId}`);
+      
+      const babiesWithParents = await storage.getCohortBabiesWithParents(cohortId);
+      log(`Found ${babiesWithParents.length} babies with parents in cohort ${cohortId}`);
+      
+      res.json(babiesWithParents);
+    } catch (err) {
+      log(`Error fetching babies with parents: ${err}`);
+      res.status(500).json({ error: "Failed to fetch babies and parents" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

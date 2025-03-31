@@ -2,6 +2,8 @@ import { Baby, Cohort } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { format } from "date-fns";
 import { CalendarDays, MessageSquare, Users } from "lucide-react";
+import { CohortBabiesList } from "./cohort-babies-list";
+import { Separator } from "@/components/ui/separator";
 
 interface CohortCardProps {
   cohort: Cohort;
@@ -71,6 +73,11 @@ export function CohortCard({ cohort, baby }: CohortCardProps) {
               "Share experiences, ask questions, and connect with others in this cohort."}
           </p>
         </div>
+        
+        <Separator className="my-2" />
+        
+        {/* List of babies in the cohort with their parents */}
+        <CohortBabiesList cohortId={cohort.id} />
       </CardContent>
     </Card>
   );
