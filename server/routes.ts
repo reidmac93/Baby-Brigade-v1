@@ -308,6 +308,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to find user" });
     }
   });
+  
+  // Get all users (for admins and moderators to add to cohorts)
+  app.get("/api/users", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      // Only allow moderators or admins to get all users
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ error: "Only admins can view all users" });
+      }
+      
+      const users = await storage.getAllUsers();
+      
+      // Return limited information for privacy
+      const safeUsers = users.map(user => ({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role
+      }));
+      
+      res.json(safeUsers);
+    } catch (err) {
+      log(`Error getting all users: ${err}`);
+      res.status(500).json({ error: "Failed to get users" });
+    }
+  });
 
   // Create a new cohort
   app.post("/api/cohorts", async (req, res) => {
