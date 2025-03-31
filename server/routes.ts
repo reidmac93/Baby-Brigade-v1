@@ -2,7 +2,14 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertBabySchema, insertPostSchema, insertCohortMembershipSchema, insertCohortSchema } from "@shared/schema";
+import { 
+  insertBabySchema, 
+  insertPostSchema, 
+  insertCohortMembershipSchema, 
+  insertCohortSchema,
+  insertCommentSchema,
+  insertUpvoteSchema
+} from "@shared/schema";
 import { log } from "./vite";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -124,7 +131,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const postId = parseInt(req.params.id);
-      const { content } = req.body;
+      const { content, photoUrl } = req.body;
       
       if (!content || content.trim() === "") {
         return res.status(400).json({ error: "Post content cannot be empty" });
@@ -133,7 +140,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       log(`Updating post ${postId} for user ${userId}`);
 
-      const updatedPost = await storage.updatePost(postId, content, userId);
+      const updatedPost = await storage.updatePost(postId, content, userId, photoUrl);
       if (!updatedPost) {
         return res.status(404).json({ error: "Post not found or you don't have permission to edit it" });
       }
@@ -424,6 +431,166 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (err) {
       log(`Error fetching babies with parents: ${err}`);
       res.status(500).json({ error: "Failed to fetch babies and parents" });
+    }
+  });
+
+  // COMMENT ROUTES
+  
+  // Get comments for a post
+  app.get("/api/posts/:id/comments", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const postId = parseInt(req.params.id);
+      log(`Fetching comments for post ${postId}`);
+      
+      const comments = await storage.getCommentsWithUsersByPost(postId);
+      log(`Found ${comments.length} comments for post ${postId}`);
+      
+      res.json(comments);
+    } catch (err) {
+      log(`Error fetching comments: ${err}`);
+      res.status(500).json({ error: "Failed to fetch comments" });
+    }
+  });
+  
+  // Create a comment
+  app.post("/api/comments", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const commentData = insertCommentSchema.parse(req.body);
+      const comment = await storage.createComment(commentData, req.user.id);
+      log(`Created comment: ${JSON.stringify(comment)}`);
+      res.status(201).json(comment);
+    } catch (err) {
+      log(`Error creating comment: ${err}`);
+      res.status(400).json({ error: "Invalid comment data" });
+    }
+  });
+  
+  // Update a comment
+  app.put("/api/comments/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const commentId = parseInt(req.params.id);
+      const { content } = req.body;
+      
+      if (!content || content.trim() === "") {
+        return res.status(400).json({ error: "Comment content cannot be empty" });
+      }
+      
+      const userId = req.user.id;
+      log(`Updating comment ${commentId} for user ${userId}`);
+      
+      const updatedComment = await storage.updateComment(commentId, content, userId);
+      if (!updatedComment) {
+        return res.status(404).json({ error: "Comment not found or you don't have permission to edit it" });
+      }
+      
+      log(`Comment ${commentId} updated successfully`);
+      res.json(updatedComment);
+    } catch (err) {
+      log(`Error updating comment: ${err}`);
+      res.status(500).json({ error: "Failed to update comment" });
+    }
+  });
+  
+  // Delete a comment
+  app.delete("/api/comments/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const commentId = parseInt(req.params.id);
+      const userId = req.user.id;
+      log(`Deleting comment ${commentId} for user ${userId}`);
+      
+      const success = await storage.deleteComment(commentId, userId);
+      if (!success) {
+        return res.status(404).json({ error: "Comment not found or you don't have permission to delete it" });
+      }
+      
+      log(`Comment ${commentId} deleted successfully`);
+      res.json({ success: true });
+    } catch (err) {
+      log(`Error deleting comment: ${err}`);
+      res.status(500).json({ error: "Failed to delete comment" });
+    }
+  });
+  
+  // UPVOTE ROUTES
+  
+  // Get the number of upvotes for a post
+  app.get("/api/posts/:id/upvotes/count", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const postId = parseInt(req.params.id);
+      const count = await storage.getUpvoteCount(postId);
+      res.json({ count });
+    } catch (err) {
+      log(`Error getting upvote count: ${err}`);
+      res.status(500).json({ error: "Failed to get upvote count" });
+    }
+  });
+  
+  // Check if the current user has upvoted a post
+  app.get("/api/posts/:id/upvotes/user", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const postId = parseInt(req.params.id);
+      const userId = req.user.id;
+      const hasUpvoted = await storage.hasUserUpvoted(postId, userId);
+      res.json({ hasUpvoted });
+    } catch (err) {
+      log(`Error checking user upvote: ${err}`);
+      res.status(500).json({ error: "Failed to check user upvote" });
+    }
+  });
+  
+  // Add an upvote to a post
+  app.post("/api/upvotes", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const upvoteData = insertUpvoteSchema.parse(req.body);
+      const upvote = await storage.createUpvote(upvoteData, req.user.id);
+      log(`Created upvote: ${JSON.stringify(upvote)}`);
+      res.status(201).json(upvote);
+    } catch (err) {
+      log(`Error creating upvote: ${err}`);
+      
+      // If the user already upvoted, return a specific error
+      if (err instanceof Error && err.message === "User already upvoted this post") {
+        return res.status(409).json({ error: "You have already upvoted this post" });
+      }
+      
+      res.status(400).json({ error: "Invalid upvote data" });
+    }
+  });
+  
+  // Remove an upvote from a post
+  app.delete("/api/posts/:id/upvotes", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const postId = parseInt(req.params.id);
+      const userId = req.user.id;
+      
+      // Check if the user has upvoted this post
+      const hasUpvoted = await storage.hasUserUpvoted(postId, userId);
+      if (!hasUpvoted) {
+        return res.status(404).json({ error: "You have not upvoted this post" });
+      }
+      
+      await storage.removeUpvote(postId, userId);
+      log(`Removed upvote for post ${postId} by user ${userId}`);
+      res.json({ success: true });
+    } catch (err) {
+      log(`Error removing upvote: ${err}`);
+      res.status(500).json({ error: "Failed to remove upvote" });
     }
   });
 

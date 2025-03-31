@@ -62,6 +62,24 @@ export const posts = pgTable("posts", {
   userId: integer("user_id").references(() => users.id),
   cohortId: integer("cohort_id").references(() => cohorts.id),
   content: text("content").notNull(),
+  photoUrl: text("photo_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const comments = pgTable("comments", {
+  id: serial("id").primaryKey(),
+  postId: integer("post_id").references(() => posts.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const upvotes = pgTable("upvotes", {
+  id: serial("id").primaryKey(),
+  postId: integer("post_id").references(() => posts.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -86,6 +104,7 @@ export const insertBabySchema = createInsertSchema(babies).pick({
 export const insertPostSchema = createInsertSchema(posts).pick({
   content: true,
   cohortId: true,
+  photoUrl: true,
 });
 
 export const insertCohortSchema = createInsertSchema(cohorts).pick({
@@ -108,16 +127,29 @@ export const resetPasswordSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
+export const insertCommentSchema = createInsertSchema(comments).pick({
+  postId: true,
+  content: true,
+});
+
+export const insertUpvoteSchema = createInsertSchema(upvotes).pick({
+  postId: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertBaby = z.infer<typeof insertBabySchema>;
 export type InsertPost = z.infer<typeof insertPostSchema>;
 export type InsertCohort = z.infer<typeof insertCohortSchema>;
 export type InsertCohortMembership = z.infer<typeof insertCohortMembershipSchema>;
+export type InsertComment = z.infer<typeof insertCommentSchema>;
+export type InsertUpvote = z.infer<typeof insertUpvoteSchema>;
 export type ForgotPassword = z.infer<typeof forgotPasswordSchema>;
 export type ResetPassword = z.infer<typeof resetPasswordSchema>;
 export type User = typeof users.$inferSelect;
 export type Baby = typeof babies.$inferSelect;
 export type Cohort = typeof cohorts.$inferSelect;
 export type Post = typeof posts.$inferSelect;
+export type Comment = typeof comments.$inferSelect;
+export type Upvote = typeof upvotes.$inferSelect;
 export type CohortMembership = typeof cohortMemberships.$inferSelect;
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
