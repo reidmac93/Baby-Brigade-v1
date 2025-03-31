@@ -387,25 +387,6 @@ export default function ProfilePage() {
               </CardContent>
             </Card>
 
-            {/* Cohorts Information - Show all cohorts user has joined */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-2xl flex items-center gap-2">
-                  <Users className="h-6 w-6" />
-                  Your Cohorts
-                </CardTitle>
-                <CardDescription>
-                  Communities you've joined with their moderators and admins
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <UserCohortsList />
-              </CardContent>
-            </Card>
-            
-            {/* Cohort Management - only shown if user is a moderator or admin */}
-            {baby && cohort && <CohortManagement cohortId={cohort.id} />}
-
             {/* Baby Information Card */}
             <Card>
               <CardHeader>
@@ -518,6 +499,25 @@ export default function ProfilePage() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Cohorts Information - Show all cohorts user has joined */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-2xl flex items-center gap-2">
+                  <Users className="h-6 w-6" />
+                  Your Cohorts
+                </CardTitle>
+                <CardDescription>
+                  Communities you've joined with their moderators and admins
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <UserCohortsList />
+              </CardContent>
+            </Card>
+            
+            {/* Cohort Management - only shown if user is a moderator or admin */}
+            {baby && cohort && <CohortManagement cohortId={cohort.id} />}
           </>
         )}
       </div>
