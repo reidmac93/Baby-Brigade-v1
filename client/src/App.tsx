@@ -8,9 +8,11 @@ import AuthPage from "@/pages/auth-page";
 import HomePage from "@/pages/home-page";
 import ProfilePage from "@/pages/profile-page";
 import CohortPage from "@/pages/cohort-page";
+import AdminCohortsPage from "@/pages/admin-cohorts-page";
 import ResetPasswordPage from "@/pages/reset-password-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { Navigation } from "@/components/ui/navigation";
+import { ReactElement } from "react";
 
 function Router() {
   return (
@@ -22,6 +24,7 @@ function Router() {
         <ProtectedRoute path="/" component={HomePage} />
         <ProtectedRoute path="/profile" component={ProfilePage} />
         <ProtectedRoute path="/cohorts/:id" component={CohortPage} />
+        <ProtectedRoute path="/admin/cohorts" component={AdminCohortsPage} />
         <Route component={NotFound} />
       </Switch>
     </>

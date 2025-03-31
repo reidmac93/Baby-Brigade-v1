@@ -54,7 +54,22 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
+    // Handle array-based query keys to support hierarchical API paths
+    let url: string;
+    if (Array.isArray(queryKey) && queryKey.length > 1) {
+      // If it's a hierarchical path like ['/api/cohorts', cohortId, 'posts']
+      // Convert to '/api/cohorts/{cohortId}/posts'
+      url = queryKey.reduce((path, segment, index) => {
+        if (index === 0) return segment as string;
+        return `${path}/${segment}`;
+      }, '');
+    } else {
+      // Simple string path
+      url = queryKey[0] as string;
+    }
+    console.log(`Fetching from: ${url}`);
+    
+    const res = await fetch(url, {
       credentials: "include",
     });
 
