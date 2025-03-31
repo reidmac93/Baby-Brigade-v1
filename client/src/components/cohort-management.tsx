@@ -106,7 +106,7 @@ export function CohortManagement({ cohortId }: { cohortId: number }) {
       }
       
       // Then create a membership for that user
-      const response = await apiRequest("POST", "/api/cohorts/membership", {
+      const response = await apiRequest("POST", "/api/cohort-membership", {
         userId: foundUser.id,
         cohortId,
         role: "member"
@@ -134,7 +134,7 @@ export function CohortManagement({ cohortId }: { cohortId: number }) {
   // Create a new membership by direct user selection
   const addMemberByIdMutation = useMutation({
     mutationFn: async (userId: number) => {
-      const response = await apiRequest("POST", "/api/cohorts/membership", {
+      const response = await apiRequest("POST", "/api/cohort-membership", {
         userId,
         cohortId,
         role: "member"
@@ -162,7 +162,7 @@ export function CohortManagement({ cohortId }: { cohortId: number }) {
   // Update a membership role
   const updateRoleMutation = useMutation({
     mutationFn: async ({ membershipId, role }: { membershipId: number; role: string }) => {
-      const response = await apiRequest("PUT", `/api/cohorts/membership/${membershipId}`, { role });
+      const response = await apiRequest("PUT", `/api/cohort-membership/${membershipId}`, { role });
       return response.json();
     },
     onSuccess: () => {
@@ -184,7 +184,7 @@ export function CohortManagement({ cohortId }: { cohortId: number }) {
   // Remove a member from the cohort
   const removeMemberMutation = useMutation({
     mutationFn: async (membershipId: number) => {
-      const response = await apiRequest("DELETE", `/api/cohorts/membership/${membershipId}`);
+      const response = await apiRequest("DELETE", `/api/cohort-membership/${membershipId}`);
       return response.json();
     },
     onSuccess: () => {
