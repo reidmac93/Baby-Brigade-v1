@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRoute, Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import { ArrowLeft, Users, CalendarDays, Shield } from "lucide-react";
+import { ArrowLeft, Users, CalendarDays, Shield, ShieldCheck, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,6 +13,59 @@ import { CreatePost } from "@/components/create-post";
 import { PostCard } from "@/components/post-card";
 import { CohortManagement } from "@/components/cohort-management";
 import { Cohort, Post, User } from "@shared/schema";
+
+interface CohortMember {
+  id: number;
+  username: string;
+  fullName: string;
+  email: string;
+  role: string;
+  membershipId?: number;
+  membershipRole?: string;
+}
+
+const MembersList = ({ cohortId }: { cohortId: number }) => {
+  const { isLoading, error, data: members = [] } = useQuery<CohortMember[]>({
+    queryKey: ["/api/cohorts", cohortId, "members"],
+    enabled: !!cohortId,
+  });
+
+  if (isLoading) {
+    return <div className="text-center py-4">Loading members...</div>;
+  }
+
+  if (error) {
+    return <div className="text-red-500">Error loading members</div>;
+  }
+
+  if (members.length === 0) {
+    return <div className="text-center py-4 text-muted-foreground">No members found in this cohort</div>;
+  }
+
+  return (
+    <div className="divide-y">
+      {members.map((member) => (
+        <div key={member.id} className="py-3 flex items-center justify-between">
+          <div>
+            <div className="font-medium">{member.fullName}</div>
+            <div className="text-sm text-muted-foreground">
+              <Mail className="h-3 w-3 inline mr-1" />
+              {member.email}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {member.membershipRole === "moderator" && (
+              <Badge variant="outline" className="bg-green-100 text-green-800">
+                <ShieldCheck className="h-3 w-3 mr-1" />
+                Moderator
+              </Badge>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function CohortPage() {
   const [match, params] = useRoute<{ id: string }>("/cohorts/:id");
@@ -180,7 +233,7 @@ export default function CohortPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p>Members list will be displayed here</p>
+                <MembersList cohortId={cohortId} />
               </CardContent>
             </Card>
           )}
