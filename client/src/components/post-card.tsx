@@ -395,11 +395,11 @@ export function PostCard({ post, user }: PostCardProps) {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    // Check file size (limit to 5MB)
-    if (file.size > 5 * 1024 * 1024) {
+    // Check file size (limit to 2MB)
+    if (file.size > 2 * 1024 * 1024) {
       toast({
         title: "Error",
-        description: "Image is too large. Please select an image smaller than 5MB.",
+        description: "Image is too large. Please select an image smaller than 2MB.",
         variant: "destructive",
       });
       return;
