@@ -25,6 +25,7 @@ import { useLocation, Link } from "wouter";
 import { format } from "date-fns";
 import { CohortManagement } from "@/components/cohort-management";
 import { CohortList } from "@/components/cohort-list";
+import { UserCohortsList } from "@/components/user-cohorts-list";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
@@ -386,50 +387,24 @@ export default function ProfilePage() {
               </CardContent>
             </Card>
 
-            {/* Cohort Information Card - Only show if baby and cohort exist */}
-            {baby && cohort && (
-              <>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-2xl flex items-center gap-2">
-                      <Users className="h-6 w-6" />
-                      Your Cohort
-                    </CardTitle>
-                    <CardDescription>
-                      Connect with other parents whose babies were born around the same time
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex flex-col gap-2">
-                      <Label>Cohort Name</Label>
-                      <p className="text-lg font-medium">{cohort.name}</p>
-                    </div>
-                    
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <div>
-                        <Label>Week Range</Label>
-                        <p className="mt-1">
-                          {cohort.startDate ? format(new Date(cohort.startDate as string), "MMM d, yyyy") : "N/A"} - 
-                          {cohort.endDate ? format(new Date(cohort.endDate as string), "MMM d, yyyy") : "N/A"}
-                        </p>
-                      </div>
-                      <div className="flex flex-col">
-                        <Label>Cohort Feed</Label>
-                        <Button asChild variant="outline" className="mt-2 w-fit">
-                          <Link href="/">
-                            <Calendar className="h-4 w-4 mr-2" />
-                            Go to Feed
-                          </Link>
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                {/* Cohort Management - only shown if user is a moderator or admin */}
-                <CohortManagement cohortId={cohort.id} />
-              </>
-            )}
+            {/* Cohorts Information - Show all cohorts user has joined */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-2xl flex items-center gap-2">
+                  <Users className="h-6 w-6" />
+                  Your Cohorts
+                </CardTitle>
+                <CardDescription>
+                  Communities you've joined with their moderators and admins
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <UserCohortsList />
+              </CardContent>
+            </Card>
+            
+            {/* Cohort Management - only shown if user is a moderator or admin */}
+            {baby && cohort && <CohortManagement cohortId={cohort.id} />}
 
             {/* Baby Information Card */}
             <Card>
