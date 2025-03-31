@@ -43,6 +43,7 @@ export const babies = pgTable("babies", {
   birthDate: date("birth_date").notNull(),
   birthWeek: date("birth_week").notNull(),
   cohortId: integer("cohort_id").references(() => cohorts.id),
+  photoUrl: text("photo_url"),
 });
 
 export const cohorts = pgTable("cohorts", {
@@ -79,6 +80,7 @@ export const insertUserSchema = createInsertSchema(users)
 export const insertBabySchema = createInsertSchema(babies).pick({
   name: true,
   birthDate: true,
+  photoUrl: true,
 });
 
 export const insertPostSchema = createInsertSchema(posts).pick({

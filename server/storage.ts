@@ -37,6 +37,7 @@ export interface IStorage {
   updateUserRole(userId: number, role: string): Promise<User>;
   getBabyByUserId(userId: number): Promise<Baby | undefined>;
   createBaby(insertBaby: InsertBaby, userId: number): Promise<Baby>;
+  updateBaby(id: number, updateData: Partial<InsertBaby>, userId: number): Promise<Baby | undefined>;
   // Cohort methods
   getCohort(id: number): Promise<Cohort | undefined>;
   getAllCohorts(): Promise<Cohort[]>;
@@ -182,6 +183,45 @@ export class DatabaseStorage implements IStorage {
       .from(babies)
       .where(eq(babies.userId, userId));
     return baby;
+  }
+  
+  async updateBaby(id: number, updateData: Partial<InsertBaby>, userId: number): Promise<Baby | undefined> {
+    // First check if baby exists and belongs to the user
+    const baby = await this.getBabyByUserId(userId);
+    if (!baby || baby.id !== id) {
+      return undefined;
+    }
+    
+    const updateValues: any = {};
+    
+    if (updateData.name !== undefined) {
+      updateValues.name = updateData.name;
+    }
+    
+    if (updateData.birthDate !== undefined) {
+      const birthDate = new Date(updateData.birthDate);
+      updateValues.birthDate = birthDate.toISOString().split('T')[0];
+      
+      // Update birthWeek if birthDate changes
+      const birthWeek = new Date(birthDate);
+      birthWeek.setDate(birthDate.getDate() - birthDate.getDay());
+      updateValues.birthWeek = birthWeek.toISOString().split('T')[0];
+      
+      // We don't update cohort assignment when editing - that would be confusing
+      // for users who are part of custom cohorts
+    }
+    
+    if (updateData.photoUrl !== undefined) {
+      updateValues.photoUrl = updateData.photoUrl;
+    }
+    
+    const [updatedBaby] = await db
+      .update(babies)
+      .set(updateValues)
+      .where(eq(babies.id, id))
+      .returning();
+      
+    return updatedBaby;
   }
 
   private async getOrCreateCohort(birthDate: Date): Promise<Cohort> {

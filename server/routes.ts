@@ -28,6 +28,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(baby);
   });
   
+  app.put("/api/baby/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const babyId = parseInt(req.params.id);
+      const updateData = req.body;
+      
+      // Validate that we have at least one valid field to update
+      if (!updateData.name && !updateData.birthDate && !updateData.photoUrl) {
+        return res.status(400).json({ error: "No valid fields to update" });
+      }
+      
+      const updatedBaby = await storage.updateBaby(babyId, updateData, req.user!.id);
+      
+      if (!updatedBaby) {
+        return res.status(404).json({ error: "Baby not found or you do not have permission to update it" });
+      }
+      
+      res.json(updatedBaby);
+    } catch (err) {
+      log(`Error updating baby: ${err}`);
+      res.status(500).json({ error: "Failed to update baby information" });
+    }
+  });
+  
   // This API route is deprecated and replaced by /api/user/cohorts
   // The old route relied on baby's cohortId which is no longer the model
   // we're using with user-created cohorts
