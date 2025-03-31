@@ -4,29 +4,43 @@ import { Baby, Cohort, Post, User } from "@shared/schema";
 import { CohortCard } from "@/components/cohort-card";
 import { PostCard } from "@/components/post-card";
 import { CreatePost } from "@/components/create-post";
-import { Loader2, RefreshCw } from "lucide-react";
+import { CohortSwitcher } from "@/components/cohort-switcher";
+import { Loader2, RefreshCw, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Redirect } from "wouter";
+import { Redirect, useLocation } from "wouter";
 import { useEffect, useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { CohortList } from "@/components/cohort-list";
 
 type PostWithUser = Post & { user: User };
 
 export default function HomePage() {
   const { user } = useAuth();
+  const [, navigate] = useLocation();
   // Track post IDs that have been seen
   const [seenPostIds, setSeenPostIds] = useState<Set<number>>(new Set());
   // Track if there are new posts since last view
   const [hasNewPosts, setHasNewPosts] = useState(false);
+  // Active cohort ID state
+  const [activeCohortId, setActiveCohortId] = useState<number | undefined>(undefined);
+  // State for the create cohort dialog
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
-  const { data: baby, isLoading: isBabyLoading } = useQuery<Baby>({
-    queryKey: ["/api/baby"],
+  // Fetch user's cohorts
+  const { data: userCohorts = [] } = useQuery<Cohort[]>({
+    queryKey: ["/api/user/cohorts"],
   });
 
-  const { data: cohort, isLoading: isCohortLoading } = useQuery<Cohort>({
-    queryKey: ["/api/cohort", baby?.cohortId],
-    enabled: !!baby?.cohortId,
-  });
+  // Initialize active cohort from user's cohorts when they load
+  useEffect(() => {
+    if (userCohorts.length > 0 && !activeCohortId) {
+      setActiveCohortId(userCohorts[0].id);
+    }
+  }, [userCohorts, activeCohortId]);
+
+  // Directly get the active cohort from the userCohorts
+  const activeCohort = userCohorts.find(c => c.id === activeCohortId);
 
   const { 
     data: posts = [], 
@@ -34,8 +48,8 @@ export default function HomePage() {
     isFetching: isPostsFetching,
     refetch: refetchPosts
   } = useQuery<PostWithUser[]>({
-    queryKey: [`/api/cohort/${baby?.cohortId}/posts`],
-    enabled: !!baby?.cohortId,
+    queryKey: ["/api/cohorts", activeCohortId, "posts"],
+    enabled: !!activeCohortId,
     refetchInterval: 10000, // Refetch posts every 10 seconds
   });
   
@@ -60,17 +74,33 @@ export default function HomePage() {
     setHasNewPosts(false); // Clear the new posts indicator
   };
 
-  if (isBabyLoading) {
+  // Function to handle cohort selection
+  const handleCohortChange = (cohortId: number) => {
+    setActiveCohortId(cohortId);
+    setSeenPostIds(new Set()); // Reset seen posts when changing cohorts
+    setHasNewPosts(false);
+  };
+
+  // Loading state while waiting for cohorts
+  if (userCohorts.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="container mx-auto px-4 py-12">
+        <div className="max-w-md mx-auto">
+          <h1 className="text-3xl font-bold mb-6 text-center">Welcome to BabyConnect</h1>
+          <p className="text-center mb-8">You're not a member of any cohorts yet.</p>
+          
+          <div className="space-y-4">
+            <Button 
+              onClick={() => navigate("/profile")} 
+              className="w-full"
+            >
+              <Users className="mr-2 h-4 w-4" />
+              Create Your First Cohort
+            </Button>
+          </div>
+        </div>
       </div>
     );
-  }
-
-  // Redirect to profile if baby information is not provided
-  if (!baby) {
-    return <Redirect to="/profile" />;
   }
 
   return (
@@ -78,13 +108,27 @@ export default function HomePage() {
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Sidebar with Cohort Info */}
         <div className="lg:w-1/4">
-          {cohort && <CohortCard cohort={cohort} baby={baby} />}
+          {activeCohort && (
+            <>
+              <div className="mb-4">
+                <CohortSwitcher 
+                  currentCohortId={activeCohortId}
+                  onCohortChange={handleCohortChange}
+                  onCreateClick={() => setCreateDialogOpen(true)}
+                  className="w-full"
+                />
+              </div>
+              <CohortCard cohort={activeCohort} baby={null} />
+            </>
+          )}
         </div>
 
         {/* Main Content - Post Wall */}
         <div className="lg:w-3/4">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold">Cohort Feed</h2>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <div className="flex items-center">
+              <h2 className="text-2xl font-bold">{activeCohort?.name} Feed</h2>
+            </div>
             <div className="flex items-center gap-3">
               {isPostsFetching && !isPostsLoading && (
                 <div className="flex items-center text-sm text-muted-foreground">
@@ -109,7 +153,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="space-y-6">
-            <CreatePost cohortId={baby.cohortId!} />
+            {activeCohortId && <CreatePost cohortId={activeCohortId} />}
             {isPostsLoading ? (
               <div className="flex justify-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -128,6 +172,18 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+
+      {/* Create Cohort Dialog */}
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Create a New Cohort</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <CohortList />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
