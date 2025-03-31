@@ -76,7 +76,7 @@ export function CohortManagement({ cohortId }: { cohortId: number }) {
       }
       
       // Then create a membership for that user
-      const response = await apiRequest("POST", "/api/cohort-membership", {
+      const response = await apiRequest("POST", "/api/cohorts/membership", {
         userId: foundUser.id,
         cohortId,
         role: "member"
@@ -104,7 +104,7 @@ export function CohortManagement({ cohortId }: { cohortId: number }) {
   // Update a membership role
   const updateRoleMutation = useMutation({
     mutationFn: async ({ membershipId, role }: { membershipId: number; role: string }) => {
-      const response = await apiRequest("PUT", `/api/cohort-membership/${membershipId}`, { role });
+      const response = await apiRequest("PUT", `/api/cohorts/membership/${membershipId}`, { role });
       return response.json();
     },
     onSuccess: () => {
@@ -126,7 +126,7 @@ export function CohortManagement({ cohortId }: { cohortId: number }) {
   // Remove a member from the cohort
   const removeMemberMutation = useMutation({
     mutationFn: async (membershipId: number) => {
-      const response = await apiRequest("DELETE", `/api/cohort-membership/${membershipId}`);
+      const response = await apiRequest("DELETE", `/api/cohorts/membership/${membershipId}`);
       return response.json();
     },
     onSuccess: () => {
@@ -247,9 +247,11 @@ export function CohortManagement({ cohortId }: { cohortId: number }) {
                             Moderator
                           </Badge>
                         )}
-                        <div className="flex gap-2">
-                          {member.id !== user?.id && member.membershipId && (
-                            <>
+                        
+                        {member.membershipId && (
+                          <>
+                            {/* Don't allow users to change their own role */}
+                            {member.id !== user?.id && (
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -268,6 +270,10 @@ export function CohortManagement({ cohortId }: { cohortId: number }) {
                                   </>
                                 )}
                               </Button>
+                            )}
+                            
+                            {/* Allow admins to remove anyone, including moderators */}
+                            {(user?.role === "admin" || member.id !== user?.id) && (
                               <Button
                                 variant="destructive"
                                 size="sm"
@@ -277,9 +283,9 @@ export function CohortManagement({ cohortId }: { cohortId: number }) {
                                 <X className="h-3 w-3 mr-1" />
                                 Remove
                               </Button>
-                            </>
-                          )}
-                        </div>
+                            )}
+                          </>
+                        )}
                       </div>
                     </div>
                   ))}
